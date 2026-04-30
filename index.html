@@ -648,7 +648,7 @@
         <div class="flex justify-between items-center mt-4">
           <div class="text-left">
             <div id="weather-status-v1" class="text-base font-medium text-white">snow</div>
-            <div id="weather-timer-v1" class="text-xs opacity-80 text-blue-200"><span id="countdown-v1">60</span><span id="sec-label-v1">秒</span></div>
+            <div id="weather-timer-v1" class="text-xs opacity-80 text-blue-200"><span id="countdown-v1">60</span><span id="sec-label-v1">s</span></div>
           </div>
           
           <button id="config-btn-v1" class="border border-blue-400 hover:border-blue-300 text-blue-400 hover:text-blue-300 rounded-full w-10 h-10 flex items-center justify-center text-lg transition-all duration-300 hover:shadow-lg gentle-glow btn-spring-effect">
@@ -680,7 +680,7 @@
               <div class="flex items-center gap-1">
                   <div id="weather-status-v2" class="text-base font-bold text-white">snow</div>
                   <div id="weather-timer-v2" class="text-sm font-semibold text-white">
-                      <span id="countdown-v2">60</span><span id="sec-label-v2">秒</span>
+                      <span id="countdown-v2">60</span><span id="sec-label-v2">s</span>
                   </div>
               </div>
           </button>
@@ -1771,11 +1771,11 @@ const chineseTranslationMap = {
       if (createName) createName.placeholder = t('event_name_placeholder');
       if (createDate) createDate.placeholder = t('event_date_placeholder');
       if (tzTextInput) tzTextInput.placeholder = t('local_time_placeholder');
-      // 更新秒字
+      // 更新计时
       const secLabelV1 = document.getElementById('sec-label-v1');
       const secLabelV2 = document.getElementById('sec-label-v2');
-      if (secLabelV1) secLabelV1.textContent = currentLang === 'en' ? 's' : '秒';
-      if (secLabelV2) secLabelV2.textContent = currentLang === 'en' ? 's' : '秒';
+      if (secLabelV1) secLabelV1.textContent = currentLang === 'en' ? 's' : 's';
+      if (secLabelV2) secLabelV2.textContent = currentLang === 'en' ? 's' : 's';
       // 更新速度标签
       const speedEl = document.getElementById('speed-value-unified');
       if (speedEl) {
