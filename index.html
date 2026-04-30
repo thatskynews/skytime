@@ -1,0 +1,3727 @@
+<!doctype html>
+<html lang="zh-CN" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skytime</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+      overflow: hidden;
+      font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+      background: linear-gradient(180deg, #031B4A 0%, #0d2b5c 50%, #0f2e65 100%);
+    }
+    
+    @keyframes gentleGlow {
+      0%, 100% { filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.3)); }
+      50% { filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.5)); }
+    }
+    
+    @keyframes subtlePulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.90; }
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    
+    @keyframes snowFall {
+      0% { transform: translateY(-10px) translateX(0); opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { transform: translateY(calc(100vh + 20px)) translateX(20px); opacity: 0; }
+    }
+    
+    @keyframes rainFall {
+      0% { transform: translateY(-10px) translateX(0); opacity: 0; }
+      10% { opacity: 0.7; }
+      90% { opacity: 0.7; }
+      100% { transform: translateY(calc(100vh + 20px)) translateX(10px); opacity: 0; }
+    }
+    
+    .fade-in { animation: fadeIn 0.8s ease-out; }
+    .colon-blink { animation: pulse 2s ease-in-out infinite; }
+    .gentle-glow { animation: gentleGlow 3s ease-in-out infinite; }
+    .subtle-pulse { animation: subtlePulse 1s ease-in-out infinite; }
+    
+    .time-display {
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+    }
+    
+    /* 玻璃效果卡片 */
+    .glass-card-v1, .glass-card-v2-main { 
+        background: linear-gradient(135deg, 
+            rgba(255, 255, 255, 0.05) 0%, 
+            rgba(255, 255, 255, 0.02) 100%);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 1.5rem; 
+    }
+
+    /* 设置与动画 */
+    #config-panel-unified {
+        background: rgba(8, 25, 50, 0.9);
+        backdrop-filter: blur(20px); 
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.15); 
+        box-shadow: 0 15px 50px rgba(0, 0, 0, 0.6);
+        border-radius: 2.5rem; 
+        transition: transform 0.6s cubic-bezier(0.3, 1.3, 0.5, 1.2), opacity 0.4s ease-out;
+        z-index: 50; 
+    }
+
+    .config-hidden {
+        transform: translate(-50%, -50%) scale(0.95); 
+        opacity: 0;
+    }
+    
+    .config-active {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+    
+    .btn-spring-effect {
+        transition: transform 0.15s cubic-bezier(0.2, 0.9, 0.3, 1.35); 
+    }
+    .btn-spring-effect:active {
+        transform: scale(0.95);
+    }
+    
+    .weather-particle { position: absolute; pointer-events: none; z-index: 100; }
+    .snowflake { 
+      background: rgba(255, 255, 255, 0.9); 
+      border-radius: 50%; 
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.8); 
+    }
+    .raindrop {
+      background: linear-gradient(to bottom, rgba(173, 216, 230, 0.8) 0%, rgba(135, 206, 250, 0.8) 100%);
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(135deg);
+      box-shadow: 0 0 8px rgba(135, 206, 250, 0.6);
+    }
+    
+    .text-glow-white { 
+      text-shadow: 0 0 20px rgba(255, 255, 255, 0.6), 0 0 40px rgba(255, 255, 255, 0.3); 
+    }
+    .text-glow-blue { 
+      text-shadow: 0 0 15px rgba(100, 200, 255, 0.6), 0 0 30px rgba(100, 200, 255, 0.3); 
+    }
+    .text-glow-light { 
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.4), 0 0 20px rgba(255, 255, 255, 0.2); 
+    }
+    
+    .glowing { 
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.8), 0 0 25px rgba(255, 255, 255, 0.5), 0 0 40px rgba(100, 180, 255, 0.4); 
+    }
+    .blue-glow-text { 
+      text-shadow: 0 0 8px rgba(96, 165, 250, 0.6); 
+      color: #7dd3fc; 
+    }
+    .title-glow { 
+      text-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 0 0 30px rgba(100, 180, 255, 0.5); 
+    }
+
+    #time-timezone-wrapper-v2 {
+        white-space: nowrap;
+        overflow: visible;
+    }
+    
+    .hidden { display: none; }
+
+    /* 一次性光晕提示动效 */
+    @keyframes glowSpread {
+      0%   { text-shadow: 0 0 0px rgba(255,255,255,0); }
+      50%  { text-shadow: 0 0 12px rgba(255,255,255,1), 0 0 25px rgba(255,255,255,0.8); }
+      100% { text-shadow: 0 0 0px rgba(255,255,255,0); }
+    }
+    .breathe-glow-spread {
+      animation: glowSpread 0.7s ease-in-out 2;
+    }
+
+    /* 遮罩层 */
+    #overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6); 
+      backdrop-filter: blur(8px); 
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 40; 
+      transition: opacity 0.3s ease;
+      opacity: 0;
+      pointer-events: none; 
+    }
+
+    #overlay.active {
+      opacity: 1;
+      pointer-events: auto; 
+    }
+
+    /* 配置面板 */
+    .custom-timezone-display {
+        background-color: #1a2c53;
+        border: 1px solid transparent; 
+        border-radius: 0.75rem; 
+        cursor: pointer;
+        transition: background-color 0.2s;
+        white-space: nowrap; 
+        overflow: hidden;
+    }
+    .custom-timezone-display:hover {
+        background-color: #1e3a8a;
+    }
+
+    #current-timezone-name {
+        min-width: 0; 
+        overflow: hidden;
+        text-overflow: ellipsis; 
+    }
+    
+    .select-arrow {
+        pointer-events: none; 
+        color: #7dd3fc; 
+        font-size: 0.875rem; 
+        flex-shrink: 0; 
+        margin-left: 0.5rem;
+    }
+    
+    .timezone-status-display {
+        background-color: #1e3a8a; 
+        color: #93c5fd; 
+        border-radius: 0.75rem;
+        padding: 0.5rem 0.75rem;
+        text-align: center;
+        font-size: 0.875rem; 
+        font-weight: 500; 
+        pointer-events: none; 
+        user-select: none;
+        transition: opacity 0.3s ease;
+    }
+    
+    .config-button-base { 
+        border-radius: 0.75rem; 
+        border: 2px solid transparent; 
+        transition: background-color 0.2s ease;
+    }
+
+    .config-button-active {
+        background-color: #3b82f6; 
+        border-color: transparent; 
+    }
+
+    .config-button-inactive {
+        background-color: #1a2c53; 
+        border-color: transparent;
+    }
+
+    .config-button-inactive:hover {
+        background-color: #1e3a8a; 
+    }
+
+    #weather-speed-unified {
+      height: 8px;
+      background: #1a2c53; 
+    }
+
+    .save-button-blue {
+        background-color: #3b82f6;
+        background-image: linear-gradient(to right, #3b82f6, #2563eb);
+        border: 2px solid transparent; 
+    }
+    .save-button-blue:hover {
+        background-color: #2563eb;
+        background-image: linear-gradient(to right, #2563eb, #1d4ed8);
+    }
+    
+    /* 模态弹窗 */
+    #modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(8, 25, 50, 0.5);
+      backdrop-filter: blur(10px); 
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 55;
+      opacity: 0; 
+      transition: opacity 0.3s ease;
+      pointer-events: none; 
+    }
+    
+    #modal-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    #timezone-modal, #dev-mode-modal, #advanced-config-modal, #timezone-text-modal, #thatskytime-modal, #thatskytime-secondary-modal,
+    #more-timezone-modal, #daymark-modal, #daymark-create-modal, #daymark-select-modal, #bottom-reminder-select-modal,
+    #language-modal { 
+        background: rgba(8, 25, 50, 0.95);
+        backdrop-filter: blur(25px); 
+        -webkit-backdrop-filter: blur(25px);
+        border: 1px solid rgba(255, 255, 255, 0.2); 
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+        border-radius: 2rem;
+        transition: transform 0.4s ease-out, opacity 0.4s ease-out;
+        z-index: 60;
+    }
+
+    #advanced-config-modal, #timezone-text-modal, #thatskytime-modal, #thatskytime-secondary-modal,
+    #more-timezone-modal, #daymark-modal, #daymark-create-modal, #daymark-select-modal, #bottom-reminder-select-modal,
+    #language-modal {
+        z-index: 70;
+    }
+
+    .timezone-option {
+        background-color: #1a2c53; 
+        border-radius: 0.75rem;
+        transition: background-color 0.2s, transform 0.1s;
+    }
+    .timezone-option:hover {
+        background-color: #1e3a8a;
+    }
+    .timezone-option.active-option {
+        background-color: #3b82f6; 
+    }
+    
+    .dev-input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background-color: #1a2c53;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.75rem;
+        color: white;
+        font-size: 1rem;
+        transition: border-color 0.2s;
+    }
+    .dev-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+    }
+    
+    .dev-input::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+        opacity: 1; 
+    }
+    .dev-input::-webkit-input-placeholder { 
+        color: rgba(255, 255, 255, 0.5);
+    }
+    .dev-input::-moz-placeholder { 
+        color: rgba(255, 255, 255, 0.5);
+        opacity: 1;
+    }
+    .dev-input:-ms-input-placeholder { 
+        color: rgba(255, 255, 255, 0.5);
+    }
+    
+    .theme-title-center {
+        justify-content: center !important; 
+        cursor: pointer;
+    }
+
+    .clickable-timezone-text {
+        cursor: pointer;
+        transition: transform 0.15s cubic-bezier(0.2, 0.9, 0.3, 1.35);
+        display: inline-block;
+        position: relative;
+    }
+    .clickable-timezone-text:active {
+        transform: scale(0.95);
+    }
+
+    /* thatskytime 弹窗样式 */
+    .link-blue {
+        color: #60a5fa;
+        text-decoration: none;
+        transition: color 0.2s;
+        cursor: pointer;
+        font-weight: 500;
+    }
+    .link-blue:hover {
+        color: #3b82f6;
+        text-decoration: underline;
+    }
+    .modal-content-item {
+        padding: 0.75rem 1rem;
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: 0.75rem;
+        margin-bottom: 0.75rem;
+        transition: background-color 0.2s;
+    }
+    .modal-content-item:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    /* 日程和时区条目样式 */
+    .pinned-indicator {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background-color: #3b82f6;
+        border-radius: 50%;
+        margin-left: 8px;
+        box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+    }
+    
+    .daymark-item, .more-timezone-item {
+        background-color: #1a2c53;
+        border-radius: 0.75rem;
+        padding: 12px 16px;
+        margin-bottom: 8px;
+        transition: background-color 0.2s;
+        cursor: pointer;
+    }
+    
+    .daymark-item:hover, .more-timezone-item:hover {
+        background-color: #1e3a8a;
+    }
+    
+    .daymark-item.active-option, .more-timezone-item.active-option {
+        background-color: #3b82f6;
+    }
+    
+    /* 隐藏滚动条 */
+    #more-timezone-list, #daymark-list, #daymark-select-list {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    
+    #more-timezone-list::-webkit-scrollbar, 
+    #daymark-list::-webkit-scrollbar,
+    #daymark-select-list::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .reminder-option {
+        background-color: #1a2c53;
+        border-radius: 0.75rem;
+        padding: 12px;
+        text-align: center;
+        color: white;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .reminder-option:hover {
+        background-color: #1e3a8a;
+    }
+    
+    .reminder-option.active-option {
+        background-color: #3b82f6;
+        box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+    }
+    
+    /* 日期输入错误提示样式 */
+    .date-error-tip {
+        color: #f87171;
+        font-size: 12px;
+        margin-top: 4px;
+        padding-left: 4px;
+        display: none;
+    }
+    .date-error-tip.show {
+        display: block;
+    }
+
+    /* 语言选择弹窗内部选项样式 */
+    .language-option {
+        background-color: #1a2c53;
+        border-radius: 0.75rem;
+        padding: 12px;
+        text-align: center;
+        color: white;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    .language-option:hover {
+        background-color: #1e3a8a;
+    }
+    .language-option.active-option {
+        background-color: #3b82f6;
+    }
+  </style>
+</head>
+<body class="h-full deep-blue-bg">
+  
+  <div id="weather-container" class="absolute inset-0 overflow-hidden z-0"></div>
+
+  <div id="overlay" class="hidden"></div>
+  
+  <div id="modal-overlay" class="hidden"></div>
+
+<!-- thatskytime 二级弹窗 -->
+<div id="thatskytime-secondary-modal" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden p-6 max-w-xs w-11/12" style="opacity: 0; transform: translate(-50%, -50%) scale(0.8); z-index: 80;">
+    <h4 class="text-xl font-bold text-white mb-4 text-center" data-i18n="interact_title">交互代码共享</h4>
+    <div class="space-y-3 mb-6">
+<div class="modal-content-item cursor-pointer hover:bg-blue-500/10 transition-colors rounded-lg p-3" onclick="copyAndVisit(event, 'https://thatskytime.neocities.org/code1')">
+    <p class="text-blue-300 mb-1 text-center font-medium" data-i18n="golden_tree_title">金色圣诞树</p>
+    <p class="text-blue-200/80 text-sm text-center" data-i18n="golden_tree_desc">粒子圣诞树可与现实交互，并添加图片</p>
+</div>
+
+<div class="modal-content-item cursor-pointer hover:bg-blue-500/10 transition-colors rounded-lg p-3" onclick="copyAndVisit(event, 'https://thatskytime.neocities.org/code2')">
+    <p class="text-blue-300 mb-1 text-center font-medium" data-i18n="floating_letter_title">飘字信笺</p>
+    <p class="text-blue-200/80 text-sm text-center" data-i18n="floating_letter_desc">信笺发射器，你可以通过双击编辑来DIY修改文本，分享给你的家人朋友爱人</p>
+</div>
+    </div>
+    
+    <button id="close-thatskytime-secondary-btn" class="w-full mt-3 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors btn-spring-effect" data-i18n="close">关闭</button>
+</div>
+
+<!-- thatskytime -->
+<div id="thatskytime-modal" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden p-6 max-w-xs w-11/12" style="opacity: 0; transform: translate(-50%, -50%) scale(0.8);">
+    <div class="text-center mb-3">
+    <h4 class="text-2xl font-bold text-white text-center tracking-wide" data-i18n="thatskytime_title">
+        thatskytime
+    </h4>
+    <div class="-mt-1">
+        <span class="text-[11px] opacity-75 text-white">V 2614.13 (364)</span>
+    </div>
+</div>
+    <div class="space-y-3 mb-6">
+        <div class="modal-content-item rounded-lg p-3 border border-blue-500/30 bg-blue-500/5">
+    <p class="text-blue-300 mb-1 text-center font-medium" data-i18n="announcement">公告</p>
+    <p class="text-blue-200/80 text-sm text-center" id="announcement-text">
+        体验如何? 欢迎给我们反馈！请前往设置中的<span id="jump-to-advanced" class="text-sky-300 font-semibold underline cursor-pointer hover:text-sky-200 transition-colors">高级定义</span>给我们发送您的邮箱！如果你喜欢此项目请为我们<a href="https://www.ifdian.net/order/create?plan_id=a1ed8ab6438f11f18c1052540025c377&product_type=0&remark=&affiliate_code=" target="_blank" class="text-sky-300 font-semibold underline cursor-pointer hover:text-sky-200 transition-colors">捐赠</a>谢谢！
+    </p>
+</div>
+        
+        <div id="open-secondary-modal-btn" class="modal-content-item cursor-pointer hover:bg-blue-500/10 transition-colors rounded-lg p-3 border border-blue-500/30 bg-blue-500/5">
+            <p class="text-blue-300 mb-1 text-center font-medium" data-i18n="interact_share">交互代码共享</p>
+            <p class="text-blue-200/80 text-sm text-center" data-i18n="interact_share_desc">查看更多交互代码共享，如果您也想分享，请给我们发送邮箱！</p>
+        </div>
+        
+        <div class="modal-content-item cursor-pointer hover:bg-blue-500/10 transition-colors rounded-lg p-3" onclick="window.open('https://ghfast.top/https://github.com/thatskynews/skytime/raw/refs/heads/main/SkyTime.apk', '_blank')">
+            <p class="text-blue-300 mb-1 text-center font-medium" data-i18n="download_app">下载《SkyTime》应用程序</p>
+            <p class="text-blue-200/80 text-sm text-center break-all" data-i18n="android_only">目前仅安卓版本</p>
+        </div>
+        <!-- 后期添加选项在此处即可 -->
+    </div>
+    
+    <!-- 语言按钮 -->
+    <button id="open-language-modal-btn" class="w-full mt-3 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors btn-spring-effect" data-i18n="language_btn">语言 / Language</button>
+    
+    <button id="close-thatskytime-modal-btn" class="w-full mt-3 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors btn-spring-effect" data-i18n="close">关闭</button>
+</div>
+
+<!-- 语言选择弹窗 -->
+<div id="language-modal" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden p-6 max-w-xs w-11/12" style="opacity: 0; transform: translate(-50%, -50%) scale(0.8);">
+    <h4 class="text-xl font-bold text-white mb-4 text-center" data-i18n="language_title">切换语言</h4>
+    <div class="space-y-3">
+        <div id="lang-zh" class="language-option" data-lang="zh" data-i18n="lang_zh">中文 / Chinese</div>
+        <div id="lang-en" class="language-option" data-lang="en" data-i18n="lang_en">英文 / English</div>
+    </div>
+    <button id="save-language-btn" class="w-full mt-6 py-3 save-button-blue text-white font-bold rounded-xl transition-all duration-300 btn-spring-effect" data-i18n="save_and_close">保存并关闭</button>
+</div>
+
+  <!-- 时区文本编辑弹窗 -->
+  <div id="timezone-text-modal" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden p-6 max-w-xs w-11/12" style="opacity: 0; transform: translate(-50%, -50%) scale(0.8);">
+      <h4 class="text-xl font-bold text-white mb-4 text-center" data-i18n="define_local_time">定义本地时间</h4>
+      <div class="space-y-4">
+          <label class="block text-sm font-medium mb-1 text-white/80" data-i18n="definition">定义</label>
+          <input id="timezone-text-input" type="text" class="dev-input" placeholder="本地时间">
+      </div>
+      
+      <button id="save-timezone-text-btn" class="w-full mt-6 py-3 save-button-blue text-white font-bold rounded-xl transition-all duration-300 btn-spring-effect" data-i18n="save">保存</button>
+
+      <button id="close-timezone-text-btn" class="w-full mt-3 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors btn-spring-effect" data-i18n="close">关闭</button>
+  </div>
+
+  <!-- 底部提醒选择弹窗 -->
+  <div id="bottom-reminder-select-modal" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden p-6 max-w-xs w-11/12" style="opacity: 0; transform: translate(-50%, -50%) scale(0.8);">
+      <h4 class="text-xl font-bold text-white mb-4 text-center" data-i18n="bottom_reminder_title">底部提醒显示</h4>
+      <div class="space-y-2">
+          <div id="reminder-off-modal" class="reminder-option" data-mode="off" data-i18n="reminder_off">不显示内容</div>
+          <div id="reminder-fixed-modal" class="reminder-option" data-mode="fixed" data-i18n="reminder_fixed">显示指定事件</div>
+          <div id="reminder-nearest-modal" class="reminder-option" data-mode="nearest" data-i18n="reminder_nearest">显示最近倒数日</div>
+      </div>
+      <button id="save-bottom-reminder-btn" class="w-full mt-4 py-3 save-button-blue text-white font-bold rounded-xl transition-all duration-300 btn-spring-effect" data-i18n="save_and_close">保存并关闭</button>
+  </div>
+
+  <!-- 更多时区弹窗 -->
+  <div id="more-timezone-modal" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden p-6 max-w-xs w-11/12" style="opacity: 0; transform: translate(-50%, -50%) scale(0.8);">
+      <h4 class="text-xl font-bold text-white mb-4 text-center" data-i18n="more_timezones">更多时区</h4>
+      <div class="space-y-4">
+          <input type="text" id="more-timezone-search" class="dev-input" data-i18n-placeholder="timezone_search_placeholder" placeholder="Search city or timezone (double-tap to pin)">
+          <div id="more-timezone-list" class="space-y-3" style="max-height: 50vh; overflow-y: auto; padding: 4px;"></div>
+          <button id="more-timezone-close" class="w-full mt-2 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors btn-spring-effect" data-i18n="close">关闭</button>
+      </div>
+  </div>
+
+  <!-- 日程管理弹窗 -->
+  <div id="daymark-modal" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden p-6 max-w-xs w-11/12" style="opacity: 0; transform: translate(-50%, -50%) scale(0.8);">
+      <h4 class="text-xl font-bold text-white mb-4 text-center" data-i18n="daymark_title">日程管理</h4>
+      
+      <div id="daymark-list" style="max-height: 40vh; overflow-y: auto; margin-bottom: 16px;"></div>
+      
+      <!-- 添加日程按钮 -->
+      <button id="daymark-add-btn" class="w-full py-3 save-button-blue text-white font-bold rounded-xl transition-all duration-300 btn-spring-effect mb-3" data-i18n="add_event">添加日程事件</button>
+      
+      <div class="daymark-settings" style="padding: 12px 0 0; border-top: 1px solid rgba(255,255,255,0.1);">
+          <button id="open-bottom-reminder-btn" class="w-full py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors btn-spring-effect" data-i18n="bottom_reminder">底部提醒显示</button>
+      </div>
+      
+      <button id="daymark-close" class="w-full mt-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors btn-spring-effect" data-i18n="close">关闭</button>
+  </div>
+  
+  <!-- 创建日程弹窗 -->
+  <div id="daymark-create-modal" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden p-6 max-w-xs w-11/12" style="opacity: 0; transform: translate(-50%, -50%) scale(0.8);">
+      <h4 class="text-xl font-bold text-white mb-4 text-center" data-i18n="new_event_title">新建日程</h4>
+      <div class="space-y-4">
+          <input type="text" id="daymark-create-name" class="dev-input" placeholder="事件名称">
+          <input type="text" id="daymark-create-date" class="dev-input" placeholder="事件日期">
+          <div id="date-error-tip" class="date-error-tip" data-i18n-content="date_error_tip">时间格式或日期错误请使用：2025年12月30日、2025-12-30、2025/12/30、2025.12.30</div>
+      </div>
+      <button id="daymark-create-save" class="w-full mt-4 py-3 save-button-blue text-white font-bold rounded-xl transition-all duration-300 btn-spring-effect" data-i18n="save">保存</button>
+      <button id="daymark-create-cancel" class="w-full mt-3 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors btn-spring-effect" data-i18n="cancel">取消</button>
+  </div>
+  
+  <!-- 选择指定事件弹窗 -->
+  <div id="daymark-select-modal" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden p-6 max-w-xs w-11/12" style="opacity: 0; transform: translate(-50%, -50%) scale(0.8);">
+      <h4 class="text-xl font-bold text-white mb-4 text-center" data-i18n="select_event">选择事件</h4>
+      <div id="daymark-select-list" style="max-height: 50vh; overflow-y: auto; padding: 4px;" class="space-y-2"></div>
+      <button id="save-daymark-select-btn" class="w-full mt-4 py-3 save-button-blue text-white font-bold rounded-xl transition-all duration-300 btn-spring-effect" data-i18n="save_and_close">保存并关闭</button>
+  </div>
+
+
+  <div id="layout-v1" class="w-full h-full overflow-auto flex items-center justify-center p-4">
+    <div class="glass-card-v1 p-8 max-w-md w-full fade-in relative z-10">
+      <div class="mb-8">
+        <div class="text-center mb-6">
+          <h2 id="custom-title-cn-v1" class="text-2xl font-medium text-white gentle-glow mb-1" data-i18n="how_was_day">今天过得怎么样？</h2>
+          <p id="custom-title-en-v1" class="text-base opacity-80 text-blue-200" data-i18n="how_was_day_en">How was your day?</p>
+        </div>
+        
+        <div class="text-center mb-2">
+          <h1 id="title-v1" class="text-4xl font-bold text-white text-glow-white mb-1">Sky</h1>
+          <p id="city-name-v1" class="text-lg opacity-90 text-blue-300">定位中 城市</p> 
+        </div>
+      </div>
+      
+      <div class="text-center mb-8">
+       <div class="time-display flex justify-center items-center gap-1 mb-2">
+        <span id="hours-v1" class="text-7xl font-bold text-white text-glow-white">04</span>
+        <span class="colon-blink text-7xl font-bold text-white">:</span>
+        <span id="minutes-v1" class="text-7xl font-bold text-white text-glow-white">14</span>
+       </div>
+       
+       <div class="flex justify-center items-center gap-3 mt-2">
+        <span id="seconds-v1" class="time-display text-2xl font-semibold text-blue-200 text-glow-blue">40</span>
+        <span class="text-xl opacity-60 text-blue-300">|</span>
+        <div class="text-xl font-medium">
+         <span id="period-v1" class="text-blue-300">上午</span> 
+         <span id="timezone-v1" class="font-bold text-blue-300 ml-2 subtle-pulse">本地时间</span> 
+        </div>
+       </div>
+      </div>
+      
+      <div class="text-center mb-8">
+       <div class="text-xl font-semibold mb-1 text-white text-glow-light">
+        <span id="day-name-v1">星期六</span>
+       </div>
+       <div class="text-base opacity-90 text-blue-100">
+        <span id="date-v1">2025年12月13日</span>
+       </div>
+      </div>
+      
+      <div class="text-center border-t border-white/10 pt-6">
+        <div class="bottom-links" style="display: flex; justify-content: center; align-items: center; gap: 8px;">
+            <span id="thatskytime-link-v1" class="text-sm opacity-70 text-blue-200 hover:text-blue-100 hover:opacity-100 transition-all duration-300 inline-block cursor-pointer">
+                thatskytime
+            </span>
+            <span class="text-sm opacity-50 text-blue-300">丨</span>
+            <span id="daymark-link-v1" class="text-sm opacity-70 text-blue-200 hover:text-blue-100 hover:opacity-100 transition-all duration-300 inline-block cursor-pointer">
+                daymark
+            </span>
+        </div>
+        <div id="bottom-reminder-v1" class="bottom-reminder" style="text-align: center; font-size: 12px; color: #7dd3fc; margin-top: 6px;"></div>
+        
+        <div class="flex justify-between items-center mt-4">
+          <div class="text-left">
+            <div id="weather-status-v1" class="text-base font-medium text-white">雪飘时</div>
+            <div id="weather-timer-v1" class="text-xs opacity-80 text-blue-200"><span id="countdown-v1">60</span><span id="sec-label-v1">秒</span></div>
+          </div>
+          
+          <button id="config-btn-v1" class="border border-blue-400 hover:border-blue-300 text-blue-400 hover:text-blue-300 rounded-full w-10 h-10 flex items-center justify-center text-lg transition-all duration-300 hover:shadow-lg gentle-glow btn-spring-effect">
+           <span id="v1-button-emoji">✨</span> 
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div id="layout-v2" class="hidden w-full h-full overflow-auto flex flex-col items-center pt-16 p-4">
+    <div class="text-center mb-6 fade-in relative z-10">
+       <p id="custom-title-cn-v2" class="text-3xl font-bold text-white title-glow" data-i18n="how_was_day">今天过得怎么样?</p>
+       <p id="custom-title-en-v2" class="text-base text-white/70 font-light tracking-wider" data-i18n="how_was_day_en">How was your day?</p>
+    </div>
+
+    <div class="glass-card-v1 p-8 max-w-lg w-full fade-in relative z-10">
+      
+      <header class="flex justify-between w-full mb-6 items-start">
+          <div class="text-left">
+              <h2 id="title-v2" class="text-3xl font-extrabold glowing mb-1 text-white">Sky</h2>
+              <p id="city-name-wrapper-v2" class="text-base text-white/80 font-medium">
+                  <span id="country-name-v2">定位中</span> 
+                  <span id="city-name-v2" class="text-white/80">城市</span>
+              </p>
+          </div>
+
+          <button id="config-btn-v2" class="flex flex-col items-end text-right transition-transform hover:scale-105 btn-spring-effect flex-shrink-0">
+              <div class="flex items-center gap-1">
+                  <div id="weather-status-v2" class="text-base font-bold text-white/90">雪飘时</div>
+                  <div id="weather-timer-v2" class="text-sm font-semibold text-white/70">
+                      <span id="countdown-v2">24</span><span id="sec-label-v2">秒</span>
+                  </div>
+              </div>
+          </button>
+      </header>
+      
+      <div class="text-center mb-6">
+       <div class="time-display flex justify-center items-center gap-1 mb-6">
+        <span id="hours-v2" class="text-8xl font-bold text-white glowing leading-none">04</span>
+        <span class="colon-blink text-8xl font-bold text-white glowing relative -top-1 leading-none">:</span>
+        <span id="minutes-v2" class="text-8xl font-bold text-white glowing leading-none">14</span>
+       </div>
+       
+       <div class="flex justify-center items-center w-full max-w-md mx-auto">
+        <span id="seconds-v2" class="time-display text-3xl font-semibold blue-glow-text w-12 text-right flex-shrink-0">
+          40
+        </span>
+        
+        <div class="h-6 w-px bg-white/20 mx-4 flex-shrink-0"></div>
+        
+        <div id="time-timezone-wrapper-v2" class="text-xl font-medium text-left">
+         <span id="period-v2" class="text-white/90 mr-2">下午</span> 
+         <span id="timezone-v2" class="font-medium text-white/90">本地时间</span> 
+        </div>
+       </div>
+      </div>
+      
+      <div class="text-center mt-10">
+       <div class="text-lg font-semibold mb-1 text-white">
+        <span id="day-name-v2">星期六</span>
+       </div>
+       <div class="text-base opacity-90 text-white/70">
+        <span id="date-v2">2025年12月13日</span>
+       </div>
+      </div>
+    </div>
+    
+    <div class="bottom-links" style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 40px;">
+        <span id="thatskytime-link-v2" class="text-sm text-white/50 relative z-10 hover:text-white/80 transition-colors duration-300 cursor-pointer">
+            thatskytime
+        </span>
+        <span class="text-sm text-white/30">丨</span>
+        <span id="daymark-link-v2" class="text-sm text-white/50 relative z-10 hover:text-white/80 transition-colors duration-300 cursor-pointer">
+            daymark
+        </span>
+    </div>
+    <div id="bottom-reminder-v2" class="bottom-reminder" style="text-align: center; font-size: 12px; color: #7dd3fc; margin-top: 6px;"></div>
+  </div>
+
+  <div id="config-panel-unified" class="p-6 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden z-50 max-w-md w-11/12 config-hidden">
+     
+     <h3 id="theme-settings-title" class="text-2xl font-bold mb-5 text-white flex items-center border-b border-white/20 pb-3 btn-spring-effect theme-title-center">
+      <span class="mr-2 text-3xl"></span><span data-i18n=    "theme_settings">主题设置</span>
+     </h3>
+     
+     <div class="grid grid-cols-2 gap-4">
+       <div class="config-item col-span-2">
+        <label class="block text-sm font-medium mb-1 text-white/80" data-i18n="layout">界面版式</label>
+        <div class="flex gap-2">
+          <button id="layout-option-1" class="flex-1 text-white py-3 config-button-base config-button-inactive btn-spring-effect">
+            <div class="text-base font-medium" data-i18n="layout_v1">版式一</div>
+            <div class="text-xs opacity-80 text-white/70" data-i18n="layout_v1_desc">经典布局</div>
+          </button>
+          <button id="layout-option-2" class="flex-1 text-white py-3 config-button-base config-button-inactive btn-spring-effect">
+            <div class="text-base font-medium" data-i18n="layout_v2">版式二</div>
+            <div class="text-xs opacity-80 text-white/70" data-i18n="layout_v2_desc">简约布局</div>
+          </button>
+        </div>
+       </div>
+       
+       <div class="config-item">
+        <label class="block text-sm font-medium mb-1 text-white/80" data-i18n="timezone_select">时区选择</label>
+        <div id="timezone-select-display" class="custom-timezone-display w-full px-3 py-2 text-white flex justify-between items-center btn-spring-effect">
+            <span id="current-timezone-name"></span>
+            <span class="select-arrow">▼</span>
+        </div>
+       </div>
+       
+       <div class="config-item">
+        <label class="block text-sm font-medium mb-1 text-white/80" data-i18n="time_format">时间格式</label>
+        <div class="flex gap-2">
+          <button id="format-12-unified" class="flex-1 text-white py-2 config-button-base config-button-inactive btn-spring-effect" data-i18n="format_12">12制</button>
+          <button id="format-24-unified" class="flex-1 text-white py-2 config-button-base config-button-inactive btn-spring-effect" data-i18n="format_24">24制</button>
+        </div>
+       </div>
+
+       <div class="config-item col-span-2">
+         <div id="timezone-status-unified" class="timezone-status-display opacity-0 hidden">
+           <span data-i18n="current_timezone_status">当前时区状态：</span><span id="status-text-unified"></span>
+         </div>
+       </div>
+       
+       <div class="config-item">
+        <label class="block text-sm font-medium mb-1 text-white/80" data-i18n="weather_effect">天气效果</label>
+        <div class="flex gap-2">
+          <button id="weather-snow-unified" class="flex-1 text-white py-2 config-button-base config-button-inactive btn-spring-effect" data-i18n="snow">雪景</button>
+          <button id="weather-rain-unified" class="flex-1 text-white py-2 config-button-base config-button-inactive btn-spring-effect" data-i18n="rain">雨景</button>
+        </div>
+       </div>
+       
+       <div class="config-item">
+        <label class="block text-sm font-medium mb-1 text-white/80"><span data-i18n="effect_speed">效果速度</span>: <span id="speed-value-unified">中</span></label>
+        <input id="weather-speed-unified" type="range" min="1" max="10" value="5" class="w-full h-2 rounded-lg appearance-none cursor-pointer">
+       </div>
+       
+       <div class="col-span-2 mt-4">
+        <button id="save-config-unified" class="w-full save-button-blue text-white font-bold py-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl btn-spring-effect" data-i18n="save_and_close">保存设置并关闭</button>
+       </div>
+     </div>
+  </div>
+  
+  <!-- 时区选择弹窗：标题居中 -->
+  <div id="timezone-modal" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden p-6 max-w-xs w-11/12" style="opacity: 0; transform: translate(-50%, -50%) scale(0.8);">
+      <h4 class="text-xl font-bold text-white mb-4 text-center" data-i18n="all_timezones">选择全部时区</h4>
+      <div id="timezone-options-container" class="space-y-3">
+          <div class="timezone-option text-white py-3 px-4 text-center cursor-pointer" data-timezone="more" data-i18n="more_timezones">更多时区</div>
+          <div class="timezone-option text-white py-3 px-4 text-center cursor-pointer" data-timezone="local" data-i18n="current_local_time">当前本地时间</div>
+          <div class="timezone-option text-white py-3 px-4 text-center cursor-pointer" data-timezone="Asia/Shanghai" data-i18n="tz_china">中国标准时间 (GMT+8)</div>
+          <div class="timezone-option text-white py-3 px-4 text-center cursor-pointer" data-timezone="America/Los_Angeles" data-i18n="tz_pacific">太平洋标准时间（PST/PDT）</div>
+      </div>
+      <button id="close-modal-btn" class="w-full mt-6 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors btn-spring-effect" data-i18n="close">关闭</button>
+  </div>
+  
+  <div id="dev-mode-modal" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden p-6 max-w-xs w-11/12" style="opacity: 0; transform: translate(-50%, -50%) scale(0.8);">
+      <h4 class="text-xl font-bold text-white mb-4 text-center" data-i18n="dev_mode">自定义开发者模式</h4>
+      <div class="space-y-4">
+          
+          <label class="block text-sm font-medium mb-1 text-white/80" data-i18n="custom_main_title">自定义主标题</label>
+          <input id="dev-input-cn" type="text" class="dev-input" placeholder="今天过得怎么样？">
+          
+          <label class="block text-sm font-medium mb-1 text-white/80" data-i18n="custom_subtitle">自定义副标题</label>
+          <input id="dev-input-en" type="text" class="dev-input" placeholder="How was your day?">
+          
+          <label class="block text-sm font-medium mb-1 text-white/80" data-i18n="custom_signature">自定义签名标题</label>
+          <input id="dev-input-sky" type="text" class="dev-input" placeholder="Sky">
+          
+      </div>
+      
+      <button id="advanced-config-btn" class="w-full mt-6 py-3 save-button-blue text-white font-bold rounded-xl transition-all duration-300 btn-spring-effect" data-i18n="advanced_definition">高级定义</button>
+
+      <button id="save-dev-mode-btn" class="w-full mt-3 py-3 save-button-blue text-white font-bold rounded-xl transition-all duration-300 btn-spring-effect" data-i18n="save_and_close">保存并关闭</button>
+      <button id="close-dev-mode-btn" class="w-full mt-3 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors btn-spring-effect" data-i18n="reset_default">重置默认效果</button>
+  </div>
+
+  <div id="advanced-config-modal" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden p-6 max-w-xs w-11/12" style="opacity: 0; transform: translate(-50%, -50%) scale(0.8);">
+      <h4 class="text-xl font-bold text-white mb-6 text-center" data-i18n="advanced_definition">高级定义</h4>
+      
+      <div id="v1-style-config" class="border border-white/10 p-4 rounded-xl mb-6">
+          <h5 class="text-lg font-semibold text-white mb-3 border-b border-white/10 pb-2" data-i18n="v1_ui_custom">V1 设置 UI 自定义</h5>
+          
+          <input id="v1-emoji-input" type="text" class="dev-input text-center text-xl" placeholder="✨">
+          <p id="emoji-error-message" class="text-red-400 text-xs mt-1 hidden" data-i18n="emoji_error">请输入单个 Emoji 或图标。</p>
+      </div>
+
+<div class="text-center space-y-4">
+    <p class="text-lg font-medium text-white/90" data-i18n="developing">待开发中....</p>
+    <p class="text-sm text-blue-300">
+        <span data-i18n="feedback_suggestion">欢迎给我们发送您的建议</span>
+        <a href="mailto:goskynews@outlook.com" class="text-blue-200 hover:text-blue-100 font-semibold underline transition-colors">
+            goskynews@outlook.com
+        </a>
+    </p>
+    <p class="text-sm text-blue-300">
+        <span data-i18n="visit_website">访问《SkyTime》网站</span>
+        <a href="https://thatskytime.neocities.org" 
+           onclick="copyAndVisit(event, 'https://thatskytime.neocities.org')"
+           class="text-blue-200 hover:text-blue-100 font-semibold underline transition-colors cursor-pointer">
+            thatskytime.neocities.org
+        </a>
+    </p>
+</div>
+
+<script>
+function copyAndVisit(event, link) {
+    event.preventDefault();
+    
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(link)
+            .then(() => showSuccessAndRedirect(event, link))
+            .catch(err => {
+                console.warn('Clipboard API failed, fallback to execCommand');
+                copyWithExecCommand(event, link);
+            });
+    } else {
+        copyWithExecCommand(event, link);
+    }
+}
+
+function copyWithExecCommand(event, link) {
+    const textArea = document.createElement('textarea');
+    textArea.value = link;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-9999px';
+    textArea.style.top = '-9999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            showSuccessAndRedirect(event, link);
+        } else {
+            window.open(link, '_blank', 'noopener,noreferrer');
+        }
+    } catch (err) {
+        console.error('复制失败:', err);
+        window.open(link, '_blank', 'noopener,noreferrer');
+    } finally {
+        document.body.removeChild(textArea);
+    }
+}
+
+function showSuccessAndRedirect(event, link) {
+    const linkElement = event.target;
+    const originalText = linkElement.textContent;
+    linkElement.textContent = '✓ Copied';
+    
+    setTimeout(() => {
+        window.open(link, '_blank', 'noopener,noreferrer');
+        setTimeout(() => {
+            linkElement.textContent = originalText;
+        }, 500);
+    }, 800);
+}
+
+function copyAndVisit(event, link) {
+    event.preventDefault();
+    
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(link)
+            .then(() => showSuccessAndRedirect(event, link))
+            .catch(err => {
+                console.warn('Clipboard API failed, fallback to execCommand');
+                copyWithExecCommand(event, link);
+            });
+    } else {
+        copyWithExecCommand(event, link);
+    }
+}
+
+function copyWithExecCommand(event, link) {
+    const textArea = document.createElement('textarea');
+    textArea.value = link;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-9999px';
+    textArea.style.top = '-9999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            showSuccessAndRedirect(event, link);
+        } else {
+            window.open(link, '_blank', 'noopener,noreferrer');
+        }
+    } catch (err) {
+        console.error('复制失败:', err);
+        window.open(link, '_blank', 'noopener,noreferrer');
+    } finally {
+        document.body.removeChild(textArea);
+    }
+}
+
+function showSuccessAndRedirect(event, link) {
+    const card = event.target.closest('.modal-content-item');
+    const linkElement = card.querySelector('p:last-child');
+    const originalText = linkElement.textContent;
+    linkElement.textContent = currentLang === 'en' ? '✓ Copied' : '已复制';
+    
+    setTimeout(() => {
+        window.open(link, '_blank', 'noopener,noreferrer');
+        setTimeout(() => {
+            linkElement.textContent = originalText;
+        }, 500);
+    }, 50);
+}
+</script>
+      
+      <button id="save-advanced-config-btn" class="w-full mt-6 py-3 save-button-blue text-white font-bold rounded-xl transition-all duration-300 btn-spring-effect" data-i18n="save_and_return">保存并返回</button>
+
+      <button id="close-advanced-config-btn" class="w-full mt-3 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors btn-spring-effect" data-i18n="close">关闭</button>
+  </div>
+
+  <script>
+    // 震动功能
+    function vibrateShort() {
+        if (navigator.vibrate) {
+            navigator.vibrate(50);
+        }
+    }
+    
+    function vibrateLong() {
+        if (navigator.vibrate) {
+            navigator.vibrate(50);
+        }
+    }
+    
+    // 配置面板防抖标志
+    let isConfigAnimating = false;
+    
+    let activeModalCount = 0;
+    
+    // 弹窗遮罩锁定标志
+    let isMoreTimezoneModalLocked = false;
+    let isTimezoneModalLocked = false;
+    let isAdvancedConfigModalLocked = false;
+    let isLanguageModalLocked = false;
+    let isBottomReminderModalLocked = false;
+    
+    function updateModalOverlay() {
+        const modalOverlay = document.getElementById('modal-overlay');
+        if (activeModalCount > 0) {
+            modalOverlay.classList.remove('hidden');
+            modalOverlay.classList.add('active');
+        } else {
+            modalOverlay.classList.remove('active');
+            setTimeout(() => {
+                if (activeModalCount === 0) modalOverlay.classList.add('hidden');
+            }, 300);
+        }
+    }
+    
+    const chineseTimezones = [
+        { id: "Asia/Hong_Kong", name: "香港", offset: "GMT+8" },
+        { id: "Asia/Macau", name: "澳门", offset: "GMT+8" },
+        { id: "Asia/Taipei", name: "台湾 台北", offset: "GMT+8" },
+        { id: "Asia/Tokyo", name: "日本 东京", offset: "GMT+9" },
+        { id: "Asia/Seoul", name: "韩国 首尔", offset: "GMT+9" },
+        { id: "Asia/Singapore", name: "新加坡", offset: "GMT+8" },
+        { id: "Asia/Bangkok", name: "泰国 曼谷", offset: "GMT+7" },
+        { id: "Asia/Jakarta", name: "印度尼西亚 雅加达", offset: "GMT+7" },
+        { id: "Asia/Kuala_Lumpur", name: "马来西亚 吉隆坡", offset: "GMT+8" },
+        { id: "Asia/Manila", name: "菲律宾 马尼拉", offset: "GMT+8" },
+        { id: "Asia/Ho_Chi_Minh", name: "越南 河内", offset: "GMT+7" },
+        { id: "Asia/Yangon", name: "缅甸 仰光", offset: "GMT+6:30" },
+        { id: "Asia/Phnom_Penh", name: "柬埔寨 金边", offset: "GMT+7" },
+        { id: "Asia/Vientiane", name: "老挝 万象", offset: "GMT+7" },
+        { id: "Asia/Brunei", name: "文莱 斯里巴加湾", offset: "GMT+8" },
+        { id: "Asia/Ulaanbaatar", name: "蒙古 乌兰巴托", offset: "GMT+8" },
+        { id: "Asia/Kolkata", name: "印度 加尔各答", offset: "GMT+5:30" },
+        { id: "Asia/Karachi", name: "巴基斯坦 卡拉奇", offset: "GMT+5" },
+        { id: "Asia/Dhaka", name: "孟加拉国 达卡", offset: "GMT+6" },
+        { id: "Asia/Colombo", name: "斯里兰卡 科伦坡", offset: "GMT+5:30" },
+        { id: "Asia/Kathmandu", name: "尼泊尔 加德满都", offset: "GMT+5:45" },
+        { id: "Indian/Maldives", name: "马尔代夫 马累", offset: "GMT+5" },
+        { id: "Asia/Dubai", name: "阿联酋 迪拜", offset: "GMT+4" },
+        { id: "Asia/Tashkent", name: "乌兹别克斯坦 塔什干", offset: "GMT+5" },
+        { id: "Asia/Almaty", name: "哈萨克斯坦 阿拉木图", offset: "GMT+5" },
+        { id: "Asia/Tehran", name: "伊朗 德黑兰", offset: "GMT+3:30" },
+        { id: "Asia/Riyadh", name: "沙特阿拉伯 利雅得", offset: "GMT+3" },
+        { id: "Asia/Qatar", name: "卡塔尔 多哈", offset: "GMT+3" },
+        { id: "Asia/Kuwait", name: "科威特 科威特城", offset: "GMT+3" },
+        { id: "Asia/Muscat", name: "阿曼 马斯喀特", offset: "GMT+4" },
+        { id: "Asia/Baghdad", name: "伊拉克 巴格达", offset: "GMT+3" },
+        { id: "Asia/Amman", name: "约旦 安曼", offset: "GMT+3" },
+        { id: "Asia/Beirut", name: "黎巴嫩 贝鲁特", offset: "GMT+2" },
+        { id: "Asia/Damascus", name: "叙利亚 大马士革", offset: "GMT+3" },
+        { id: "Asia/Jerusalem", name: "以色列 耶路撒冷", offset: "GMT+2" },
+        { id: "Europe/London", name: "英国 伦敦", offset: "GMT+0" },
+        { id: "Europe/Paris", name: "法国 巴黎", offset: "GMT+1" },
+        { id: "Europe/Berlin", name: "德国 柏林", offset: "GMT+1" },
+        { id: "Europe/Rome", name: "意大利 罗马", offset: "GMT+1" },
+        { id: "Europe/Madrid", name: "西班牙 马德里", offset: "GMT+1" },
+        { id: "Europe/Moscow", name: "俄罗斯 莫斯科", offset: "GMT+3" },
+        { id: "Europe/Istanbul", name: "土耳其 伊斯坦布尔", offset: "GMT+3" },
+        { id: "Europe/Athens", name: "希腊 雅典", offset: "GMT+2" },
+        { id: "Europe/Amsterdam", name: "荷兰 阿姆斯特丹", offset: "GMT+1" },
+        { id: "Europe/Brussels", name: "比利时 布鲁塞尔", offset: "GMT+1" },
+        { id: "Europe/Vienna", name: "奥地利 维也纳", offset: "GMT+1" },
+        { id: "Europe/Stockholm", name: "瑞典 斯德哥尔摩", offset: "GMT+1" },
+        { id: "Europe/Oslo", name: "挪威 奥斯陆", offset: "GMT+1" },
+        { id: "Europe/Copenhagen", name: "丹麦 哥本哈根", offset: "GMT+1" },
+        { id: "Europe/Helsinki", name: "芬兰 赫尔辛基", offset: "GMT+2" },
+        { id: "Europe/Warsaw", name: "波兰 华沙", offset: "GMT+1" },
+        { id: "Europe/Prague", name: "捷克 布拉格", offset: "GMT+1" },
+        { id: "Europe/Budapest", name: "匈牙利 布达佩斯", offset: "GMT+1" },
+        { id: "Europe/Bucharest", name: "罗马尼亚 布加勒斯特", offset: "GMT+2" },
+        { id: "Europe/Sofia", name: "保加利亚 索菲亚", offset: "GMT+2" },
+        { id: "Europe/Belgrade", name: "塞尔维亚 贝尔格莱德", offset: "GMT+1" },
+        { id: "Europe/Zagreb", name: "克罗地亚 萨格勒布", offset: "GMT+1" },
+        { id: "Europe/Lisbon", name: "葡萄牙 里斯本", offset: "GMT+0" },
+        { id: "Europe/Dublin", name: "爱尔兰 都柏林", offset: "GMT+0" },
+        { id: "Europe/Tallinn", name: "爱沙尼亚 塔林", offset: "GMT+2" },
+        { id: "Europe/Riga", name: "拉脱维亚 里加", offset: "GMT+2" },
+        { id: "Europe/Vilnius", name: "立陶宛 维尔纽斯", offset: "GMT+2" },
+        { id: "Europe/Kiev", name: "乌克兰 基辅", offset: "GMT+2" },
+        { id: "Europe/Minsk", name: "白俄罗斯 明斯克", offset: "GMT+3" },
+        { id: "Europe/Chisinau", name: "摩尔多瓦 基希讷乌", offset: "GMT+2" },
+        { id: "Europe/Ljubljana", name: "斯洛文尼亚 卢布尔雅那", offset: "GMT+1" },
+        { id: "Europe/Bratislava", name: "斯洛伐克 布拉迪斯拉发", offset: "GMT+1" },
+        { id: "Arctic/Longyearbyen", name: "挪威 斯瓦尔巴", offset: "GMT+1" },
+        { id: "Atlantic/Reykjavik", name: "冰岛 雷克雅未克", offset: "GMT+0" },
+        { id: "America/New_York", name: "美国 纽约", offset: "GMT-4" },
+        { id: "America/Chicago", name: "美国 芝加哥", offset: "GMT-5" },
+        { id: "America/Denver", name: "美国 丹佛", offset: "GMT-6" },
+        { id: "America/Phoenix", name: "美国 菲尼克斯", offset: "GMT-7" },
+        { id: "America/Anchorage", name: "美国 阿拉斯加", offset: "GMT-8" },
+        { id: "Pacific/Honolulu", name: "美国 夏威夷", offset: "GMT-10" },
+        { id: "America/Toronto", name: "加拿大 多伦多", offset: "GMT-4" },
+        { id: "America/Vancouver", name: "加拿大 温哥华", offset: "GMT-7" },
+        { id: "America/Montreal", name: "加拿大 蒙特利尔", offset: "GMT-4" },
+        { id: "America/Mexico_City", name: "墨西哥 墨西哥城", offset: "GMT-6" },
+        { id: "America/Nassau", name: "巴哈马 拿骚", offset: "GMT-4" },
+        { id: "America/Cayman", name: "开曼群岛 乔治敦", offset: "GMT-5" },
+        { id: "America/Puerto_Rico", name: "波多黎各 圣胡安", offset: "GMT-4" },
+        { id: "America/St_Thomas", name: "美属维尔京群岛 夏洛特阿马利亚", offset: "GMT-4" },
+        { id: "Atlantic/Bermuda", name: "百慕大 哈密尔顿", offset: "GMT-3" },
+        { id: "America/Havana", name: "古巴 哈瓦那", offset: "GMT-4" },
+        { id: "America/Jamaica", name: "牙买加 金斯敦", offset: "GMT-5" },
+        { id: "America/Panama", name: "巴拿马 巴拿马城", offset: "GMT-5" },
+        { id: "America/Costa_Rica", name: "哥斯达黎加 圣何塞", offset: "GMT-6" },
+        { id: "America/Managua", name: "尼加拉瓜 马那瓜", offset: "GMT-6" },
+        { id: "America/Tegucigalpa", name: "洪都拉斯 特古西加尔巴", offset: "GMT-6" },
+        { id: "America/El_Salvador", name: "萨尔瓦多 圣萨尔瓦多", offset: "GMT-6" },
+        { id: "America/Guatemala", name: "危地马拉 危地马拉城", offset: "GMT-6" },
+        { id: "America/Godthab", name: "格陵兰 努克", offset: "GMT-2" },
+        { id: "America/Sao_Paulo", name: "巴西 圣保罗", offset: "GMT-3" },
+        { id: "America/Rio_de_Janeiro", name: "巴西 里约热内卢", offset: "GMT-3" },
+        { id: "America/Buenos_Aires", name: "阿根廷 布宜诺斯艾利斯", offset: "GMT-3" },
+        { id: "America/Lima", name: "秘鲁 利马", offset: "GMT-5" },
+        { id: "America/Santiago", name: "智利 圣地亚哥", offset: "GMT-4" },
+        { id: "America/Bogota", name: "哥伦比亚 波哥大", offset: "GMT-5" },
+        { id: "America/Caracas", name: "委内瑞拉 加拉加斯", offset: "GMT-4" },
+        { id: "America/La_Paz", name: "玻利维亚 拉巴斯", offset: "GMT-4" },
+        { id: "America/Guayaquil", name: "厄瓜多尔 基多", offset: "GMT-5" },
+        { id: "America/Asuncion", name: "巴拉圭 亚松森", offset: "GMT-4" },
+        { id: "America/Montevideo", name: "乌拉圭 蒙得维的亚", offset: "GMT-3" },
+        { id: "Pacific/Easter", name: "智利 复活节岛", offset: "GMT-6" },
+        { id: "Australia/Sydney", name: "澳大利亚 悉尼", offset: "GMT+10" },
+        { id: "Australia/Melbourne", name: "澳大利亚 墨尔本", offset: "GMT+10" },
+        { id: "Australia/Perth", name: "澳大利亚 珀斯", offset: "GMT+8" },
+        { id: "Australia/Brisbane", name: "澳大利亚 布里斯班", offset: "GMT+10" },
+        { id: "Australia/Adelaide", name: "澳大利亚 阿德莱德", offset: "GMT+9:30" },
+        { id: "Australia/Darwin", name: "澳大利亚 达尔文", offset: "GMT+9:30" },
+        { id: "Pacific/Auckland", name: "新西兰 奥克兰", offset: "GMT+12" },
+        { id: "Pacific/Fiji", name: "斐济 苏瓦", offset: "GMT+12" },
+        { id: "Pacific/Guam", name: "美国 关岛", offset: "GMT+10" },
+        { id: "Pacific/Saipan", name: "美国 塞班岛", offset: "GMT+10" },
+        { id: "Pacific/Palau", name: "帕劳 科罗尔", offset: "GMT+9" },
+        { id: "Pacific/Port_Moresby", name: "巴布亚新几内亚 莫尔兹比港", offset: "GMT+10" },
+        { id: "Pacific/Noumea", name: "新喀里多尼亚 努美阿", offset: "GMT+11" },
+        { id: "Pacific/Majuro", name: "马绍尔群岛 马朱罗", offset: "GMT+12" },
+        { id: "Pacific/Guadalcanal", name: "所罗门群岛 霍尼亚拉", offset: "GMT+11" },
+        { id: "Pacific/Efate", name: "瓦努阿图 维拉港", offset: "GMT+11" },
+        { id: "Pacific/Apia", name: "萨摩亚 阿皮亚", offset: "GMT+13" },
+        { id: "Pacific/Tongatapu", name: "汤加 努库阿洛法", offset: "GMT+13" },
+        { id: "Pacific/Tahiti", name: "法属波利尼西亚 帕皮提", offset: "GMT-10" },
+        { id: "Africa/Cairo", name: "埃及 开罗", offset: "GMT+2" },
+        { id: "Africa/Johannesburg", name: "南非 约翰内斯堡", offset: "GMT+2" },
+        { id: "Africa/Lagos", name: "尼日利亚 拉各斯", offset: "GMT+1" },
+        { id: "Africa/Nairobi", name: "肯尼亚 内罗毕", offset: "GMT+3" },
+        { id: "Africa/Addis_Ababa", name: "埃塞俄比亚 亚的斯亚贝巴", offset: "GMT+3" },
+        { id: "Africa/Algiers", name: "阿尔及利亚 阿尔及尔", offset: "GMT+1" },
+        { id: "Africa/Casablanca", name: "摩洛哥 卡萨布兰卡", offset: "GMT+0" },
+        { id: "Africa/Tunis", name: "突尼斯 突尼斯", offset: "GMT+1" },
+        { id: "Africa/Tripoli", name: "利比亚 的黎波里", offset: "GMT+2" },
+        { id: "Africa/Khartoum", name: "苏丹 喀土穆", offset: "GMT+2" },
+        { id: "Africa/Dakar", name: "塞内加尔 达喀尔", offset: "GMT+0" },
+        { id: "Africa/Accra", name: "加纳 阿克拉", offset: "GMT+0" },
+        { id: "Africa/Abidjan", name: "科特迪瓦 阿比让", offset: "GMT+0" },
+        { id: "Indian/Mahe", name: "塞舌尔 维多利亚", offset: "GMT+4" },
+        { id: "Indian/Mauritius", name: "毛里求斯 路易港", offset: "GMT+4" }
+    ];
+    
+    // 置顶时区存储
+    let pinnedTimezones = [];
+    
+    function loadPinnedTimezones() {
+        const saved = localStorage.getItem('skytime_pinned_timezones');
+        if (saved) pinnedTimezones = JSON.parse(saved);
+    }
+    
+    function savePinnedTimezones() {
+        localStorage.setItem('skytime_pinned_timezones', JSON.stringify(pinnedTimezones));
+    }
+    
+    // ==================== 日程数据 ====================
+    let daymarkEvents = [];
+    let daymarkReminderMode = 'off';
+    let daymarkFixedEventId = null;
+    
+    function loadDaymarkData() {
+        const saved = localStorage.getItem('skytime_daymark');
+        if (saved) {
+            const d = JSON.parse(saved);
+            daymarkEvents = d.events || [];
+            daymarkReminderMode = d.reminderMode || 'off';
+            daymarkFixedEventId = d.fixedEventId || null;
+        }
+        if (daymarkEvents.length === 0) {
+            const startDate = new Date(2025, 11, 15);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const daysDiff = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+            const eventName = daysDiff >= 0 ? `SkyTime丨成立` : 'Skytime';
+            daymarkEvents = [{ id: Date.now(), name: eventName, date: '2025-12-15', pinned: true }];
+            saveDaymarkData();
+        }
+    }
+    
+    function saveDaymarkData() {
+        localStorage.setItem('skytime_daymark', JSON.stringify({
+            events: daymarkEvents,
+            reminderMode: daymarkReminderMode,
+            fixedEventId: daymarkFixedEventId
+        }));
+    }
+    
+    function getDaysRemaining(dateStr) {
+        const today = new Date(); today.setHours(0,0,0,0);
+        const target = new Date(dateStr); target.setHours(0,0,0,0);
+        return Math.ceil((target - today) / 86400000);
+    }
+    
+    // ==================== 通用夏令时判断函数 ====================
+    function isDST(timezone, date) {
+        const timeStr = date.toLocaleString('en-US', { timeZone: timezone });
+        const tzDate = new Date(timeStr);
+        
+        if (timezone.startsWith('America/') || timezone.startsWith('Canada/')) {
+            const year = tzDate.getFullYear();
+            let march = new Date(year, 2, 1);
+            while (march.getDay() !== 0) march.setDate(march.getDate() + 1);
+            march.setDate(march.getDate() + 7);
+            let november = new Date(year, 10, 1);
+            while (november.getDay() !== 0) november.setDate(november.getDate() + 1);
+            return tzDate >= march && tzDate < november;
+        }
+        
+        if (timezone.startsWith('Europe/')) {
+            const year = tzDate.getFullYear();
+            let march = new Date(year, 2, 31);
+            while (march.getDay() !== 0) march.setDate(march.getDate() - 1);
+            let october = new Date(year, 9, 31);
+            while (october.getDay() !== 0) october.setDate(october.getDate() - 1);
+            return tzDate >= march && tzDate < october;
+        }
+        
+        if (timezone.startsWith('Australia/')) {
+            const year = tzDate.getFullYear();
+            let october = new Date(year, 9, 1);
+            while (october.getDay() !== 0) october.setDate(october.getDate() + 1);
+            let april = new Date(year + 1, 3, 1);
+            while (april.getDay() !== 0) april.setDate(april.getDate() + 1);
+            return tzDate >= october || tzDate < april;
+        }
+        
+        if (timezone === 'Pacific/Auckland') {
+            const year = tzDate.getFullYear();
+            let september = new Date(year, 8, 30);
+            while (september.getDay() !== 0) september.setDate(september.getDate() - 1);
+            let april = new Date(year + 1, 3, 1);
+            while (april.getDay() !== 0) april.setDate(april.getDate() + 1);
+            return tzDate >= september || tzDate < april;
+        }
+        
+        return false;
+    }
+    
+    // ==================== 配置状态 ====================
+    const config = {
+      timezone: 'America/Los_Angeles', 
+      timeFormat: '24',
+      weatherSpeed: 5,
+      layout: 'v2', 
+      weatherType: 'snow',
+      customTitleCN: '今天过得怎么样？',
+      customTitleEN: 'How was your day?',
+      customTitleSky: 'Sky',
+      v1ButtonEmoji: '✨',
+      customLocalText: ''
+    };
+    
+    // 时区信息（双语）
+    const timezoneInfo = {
+      'local': { name: '本地时间', nameEn: 'Local Time', country: '定位中', countryEn: 'Locating', city: '城市', cityEn: 'City' }, 
+      'Asia/Shanghai': { name: '中国标准时间', nameEn: 'China Standard Time', city: '北京', cityEn: 'Beijing', country: '中国', countryEn: 'China' },
+      'America/Los_Angeles': { name: '太平洋标准时间', nameEn: 'Pacific Time', city: '洛杉矶', cityEn: 'Los Angeles', country: '美国', countryEn: 'USA' }
+    };
+    
+    // 配置面板显示文本（双语）
+    const timezoneDisplayNames = {
+        'local': '本地时间',
+        'Asia/Shanghai': '中国标准时间 (GMT+8)',
+        'America/Los_Angeles': '太平洋标准时间（PST/PDT）'
+    };
+    const timezoneDisplayNamesEn = {
+        'local': 'Local Time',
+        'Asia/Shanghai': 'China Standard Time (GMT+8)',
+        'America/Los_Angeles': 'Pacific Time (PST/PDT)'
+    };
+    
+    function getTimezoneDisplayName(tz) {
+        if (currentLang === 'en') {
+            return timezoneDisplayNamesEn[tz] || timezoneDisplayNames[tz] || tz;
+        }
+        return timezoneDisplayNames[tz] || tz;
+    }
+    
+    function getTzInfo(tz) {
+        const info = timezoneInfo[tz];
+        if (!info) return null;
+        if (currentLang === 'en') {
+            return {
+                name: info.nameEn || info.name,
+                city: info.cityEn || info.city,
+                country: info.countryEn || info.country
+            };
+        }
+        return { name: info.name, city: info.city, country: info.country };
+    }
+    
+    // 中文字典
+const chineseTranslationMap = {
+    // 23个省
+    'Hebei': '河北', 'Shijiazhuang': '石家庄',
+    'Shanxi': '山西', 'Taiyuan': '太原',
+    'Liaoning': '辽宁', 'Shenyang': '沈阳',
+    'Jilin': '吉林', 'Changchun': '长春',
+    'Heilongjiang': '黑龙江', 'Harbin': '哈尔滨',
+    'Jiangsu': '江苏', 'Nanjing': '南京',
+    'Zhejiang': '浙江', 'Hangzhou': '杭州',
+    'Anhui': '安徽', 'Hefei': '合肥',
+    'Fujian': '福建', 'Fuzhou': '福州',
+    'Jiangxi': '江西', 'Nanchang': '南昌',
+    'Shandong': '山东', 'Jinan': '济南',
+    'Henan': '河南', 'Zhengzhou': '郑州',
+    'Hubei': '湖北', 'Wuhan': '武汉',
+    'Hunan': '湖南', 'Changsha': '长沙',
+    'Guangdong': '广东', 'Guangzhou': '广州',
+    'Hainan': '海南', 'Haikou': '海口',
+    'Sichuan': '四川', 'Chengdu': '成都',
+    'Guizhou': '贵州', 'Guiyang': '贵阳',
+    'Yunnan': '云南', 'Kunming': '昆明',
+    'Shaanxi': '陕西', 'Xian': '西安',
+    'Gansu': '甘肃', 'Lanzhou': '兰州',
+    'Qinghai': '青海', 'Xining': '西宁',
+    'Taiwan': '台湾', 'Taipei': '台北',
+
+    // 5个自治区
+    'Neimenggu': '内蒙古', 'Hohhot': '呼和浩特',
+    'Guangxi': '广西', 'Nanning': '南宁',
+    'Xizang': '西藏', 'Lhasa': '拉萨',
+    'Ningxia': '宁夏', 'Yinchuan': '银川',
+    'Xinjiang': '新疆', 'Urumqi': '乌鲁木齐',
+
+    // 4个直辖市
+    'Beijing': '北京',
+    'Shanghai': '上海',
+    'Tianjin': '天津',
+    'Chongqing': '重庆',
+
+    // 北京
+    'Dongcheng': '东城区', 'Xicheng': '西城区', 'Chaoyang': '朝阳区', 'Haidian': '海淀区',
+    'Fengtai': '丰台区', 'Shijingshan': '石景山区', 'Mentougou': '门头沟区', 'Fangshan': '房山区',
+    'Tongzhou': '通州区', 'Shunyi': '顺义区', 'Changping': '昌平区', 'Daxing': '大兴区',
+    'Huairou': '怀柔区', 'Pinggu': '平谷区', 'Miyun': '密云区', 'Yanqing': '延庆区',
+
+    // 上海市
+    'Huangpu': '黄浦区', 'Xuhui': '徐汇区', 'Changning': '长宁区', 'JingAn': '静安区',
+    'Putuo': '普陀区', 'Hongkou': '虹口区', 'Yangpu': '杨浦区', 'Minhang': '闵行区',
+    'Baoshan': '宝山区', 'Jiading': '嘉定区', 'Pudong': '浦东新区', 'Jinshan': '金山区',
+    'Songjiang': '松江区', 'Qingpu': '青浦区', 'Fengxian': '奉贤区', 'Chongming': '崇明区',
+
+    // 天津市
+    'Heping': '和平区', 'Hebei': '河北区', 'Hedong': '河东区', 'Hexi': '河西区',
+    'Nankai': '南开区', 'Hongqiao': '红桥区', 'Dongli': '东丽区', 'Xiqing': '西青区',
+    'Jinnan': '津南区', 'Beichen': '北辰区', 'Wuqing': '武清区', 'Baodi': '宝坻区',
+    'Binhai': '滨海新区', 'Ninghe': '宁河区', 'Jinghai': '静海区', 'JiZhou': '蓟州区',
+
+    // 重庆市
+    'Wanzhou': '万州区', 'Fuling': '涪陵区', 'Yuzhong': '渝中区', 'Dadukou': '大渡口区',
+    'Jiangbei': '江北区', 'Shapingba': '沙坪坝区', 'Jiulongpo': '九龙坡区', 'NanAn': '南岸区',
+    'Beibei': '北碚区', 'Qijiang': '綦江区', 'Dazu': '大足区', 'Yubei': '渝北区',
+    'BanAn': '巴南区', 'Qianjiang': '黔江区', 'Changshou': '长寿区', 'Jiangjin': '江津区',
+    'Hechuan': '合川区', 'Yongchuan': '永川区', 'Nanchuan': '南川区', 'Bishan': '璧山区',
+    'Tongliang': '铜梁区', 'Tongnan': '潼南区', 'Rongchang': '荣昌区', 'Kaizhou': '开州区',
+    'Liangping': '梁平区', 'Wulong': '武隆区',
+
+    // 河北省
+    'Shijiazhuang': '石家庄', 'Tangshan': '唐山', 'Qinhuangdao': '秦皇岛', 'Handan': '邯郸',
+    'Xingtai': '邢台', 'Baoding': '保定', 'Zhangjiakou': '张家口', 'Chengde': '承德',
+    'Cangzhou': '沧州', 'Langfang': '廊坊', 'Hengshui': '衡水',
+    
+    // 山西省
+    'Taiyuan': '太原', 'Datong': '大同', 'Yangquan': '阳泉', 'Changzhi': '长治',
+    'Jincheng': '晋城', 'Shuozhou': '朔州', 'Jinzhong': '晋中', 'Yuncheng': '运城',
+    'Xinzhou': '忻州', 'Linfen': '临汾', 'Luliang': '吕梁',
+    
+    // 内蒙古自治区
+    'Hohhot': '呼和浩特', 'Baotou': '包头', 'Wuhai': '乌海', 'Chifeng': '赤峰',
+    'Tongliao': '通辽', 'Ordos': '鄂尔多斯', 'Hulunbuir': '呼伦贝尔', 'Bayannur': '巴彦淖尔',
+    'Ulanqab': '乌兰察布', 'Xingan': '兴安盟', 'Xilingol': '锡林郭勒盟', 'Alxa': '阿拉善盟',
+    
+    // 辽宁省
+    'Shenyang': '沈阳', 'Dalian': '大连', 'Anshan': '鞍山', 'Fushun': '抚顺',
+    'Benxi': '本溪', 'Dandong': '丹东', 'Jinzhou': '锦州', 'Yingkou': '营口',
+    'Fuxin': '阜新', 'Liaoyang': '辽阳', 'Panjin': '盘锦', 'Tieling': '铁岭',
+    'Chaoyang': '朝阳', 'Huludao': '葫芦岛',
+    
+    // 吉林省
+    'Changchun': '长春', 'Jilin': '吉林', 'Siping': '四平', 'Liaoyuan': '辽源',
+    'Tonghua': '通化', 'Baishan': '白山', 'Songyuan': '松原', 'Baicheng': '白城',
+    'Yanbian': '延边朝鲜族自治州',
+    
+    // 黑龙江省
+    'Harbin': '哈尔滨', 'Qiqihar': '齐齐哈尔', 'Jixi': '鸡西', 'Hegang': '鹤岗',
+    'Shuangyashan': '双鸭山', 'Daqing': '大庆', 'Yichun': '伊春', 'Jiamusi': '佳木斯',
+    'Qitaihe': '七台河', 'Mudanjiang': '牡丹江', 'Heihe': '黑河', 'Suihua': '绥化',
+    'Daxinganling': '大兴安岭地区',
+    
+    // 江苏省
+    'Nanjing': '南京', 'Wuxi': '无锡', 'Xuzhou': '徐州', 'Changzhou': '常州',
+    'Suzhou': '苏州', 'Nantong': '南通', 'Lianyungang': '连云港', 'HuaiAn': '淮安',
+    'Yancheng': '盐城', 'Yangzhou': '扬州', 'Zhenjiang': '镇江', 'Taizhou': '泰州',
+    'Suqian': '宿迁',
+    
+    // 浙江省
+    'Hangzhou': '杭州', 'Ningbo': '宁波', 'Wenzhou': '温州', 'Jiaxing': '嘉兴',
+    'Huzhou': '湖州', 'Shaoxing': '绍兴', 'Jinhua': '金华', 'Quzhou': '衢州',
+    'Zhoushan': '舟山', 'Taizhou': '台州', 'Lishui': '丽水',
+    
+    // 安徽省
+    'Hefei': '合肥', 'Wuhu': '芜湖', 'Bengbu': '蚌埠', 'Huainan': '淮南',
+    'Maanshan': '马鞍山', 'Huaibei': '淮北', 'Tongling': '铜陵', 'Anqing': '安庆',
+    'Huangshan': '黄山', 'Chuzhou': '滁州', 'Fuyang': '阜阳', 'Suzhou': '宿州',
+    'LuAn': '六安', 'Bozhou': '亳州', 'Chizhou': '池州', 'Xuancheng': '宣城',
+    
+    // 福建省
+    'Fuzhou': '福州', 'Xiamen': '厦门', 'Putian': '莆田', 'Sanming': '三明',
+    'Quanzhou': '泉州', 'Zhangzhou': '漳州', 'Nanping': '南平', 'Longyan': '龙岩',
+    'Ningde': '宁德',
+    
+    // 江西省
+    'Nanchang': '南昌', 'Jingdezhen': '景德镇', 'Pingxiang': '萍乡', 'Jiujiang': '九江',
+    'Xinyu': '新余', 'Yingtan': '鹰潭', 'Ganzhou': '赣州', 'JiAn': '吉安',
+    'Yichun': '宜春', 'Fuzhou': '抚州', 'Shangrao': '上饶',
+    
+    // 山东省
+    'Jinan': '济南', 'Qingdao': '青岛', 'Zibo': '淄博', 'Zaozhuang': '枣庄',
+    'Dongying': '东营', 'Yantai': '烟台', 'Weifang': '潍坊', 'Jining': '济宁',
+    'TaiAn': '泰安', 'Weihai': '威海', 'Rizhao': '日照', 'Linyi': '临沂',
+    'Dezhou': '德州', 'Liaocheng': '聊城', 'Binzhou': '滨州', 'Heze': '菏泽',
+    
+    // 河南省
+    'Zhengzhou': '郑州', 'Kaifeng': '开封', 'Luoyang': '洛阳', 'Pingdingshan': '平顶山',
+    'Anyang': '安阳', 'Hebi': '鹤壁', 'Xinxiang': '新乡', 'Jiaozuo': '焦作',
+    'Puyang': '濮阳', 'Xuchang': '许昌', 'Luohe': '漯河', 'Sanmenxia': '三门峡',
+    'Nanyang': '南阳', 'Shangqiu': '商丘', 'Xinyang': '信阳', 'Zhoukou': '周口',
+    'Zhumadian': '驻马店',
+    
+    // 湖北省
+    'Wuhan': '武汉', 'Huangshi': '黄石', 'Shiyan': '十堰', 'Yichang': '宜昌',
+    'Xiangyang': '襄阳', 'Ezhou': '鄂州', 'Jingmen': '荆门', 'Xiaogan': '孝感',
+    'Jingzhou': '荆州', 'Huanggang': '黄冈', 'Xianning': '咸宁', 'Suizhou': '随州',
+    'Enshi': '恩施土家族苗族自治州',
+    
+    // 湖南省
+    'Changsha': '长沙', 'Zhuzhou': '株洲', 'Xiangtan': '湘潭', 'Hengyang': '衡阳',
+    'Shaoyang': '邵阳', 'Yueyang': '岳阳', 'Changde': '常德', 'Zhangjiajie': '张家界',
+    'Yiyang': '益阳', 'Chenzhou': '郴州', 'Yongzhou': '永州', 'Huaihua': '怀化',
+    'Loudi': '娄底', 'Xiangxi': '湘西土家族苗族自治州',
+    
+    // 广东省
+    'Guangzhou': '广州', 'Shaoguan': '韶关', 'Shenzhen': '深圳', 'Zhuhai': '珠海',
+    'Shantou': '汕头', 'Foshan': '佛山', 'Jiangmen': '江门', 'Zhanjiang': '湛江',
+    'Maoming': '茂名', 'Zhaoqing': '肇庆', 'Huizhou': '惠州', 'Meizhou': '梅州',
+    'Shanwei': '汕尾', 'Heyuan': '河源', 'Yangjiang': '阳江', 'Qingyuan': '清远',
+    'Dongguan': '东莞', 'Zhongshan': '中山', 'Chaozhou': '潮州', 'Jieyang': '揭阳',
+    'Yunfu': '云浮',
+    
+    // 广西壮族自治区
+    'Nanning': '南宁', 'Liuzhou': '柳州', 'Guilin': '桂林', 'Wuzhou': '梧州',
+    'Beihai': '北海', 'Fangchenggang': '防城港', 'Qinzhou': '钦州', 'Guigang': '贵港',
+    'Yulin': '玉林', 'Baise': '百色', 'Hezhou': '贺州', 'Hechi': '河池',
+    'Laibin': '来宾', 'Chongzuo': '崇左',
+    
+    // 海南省
+    'Haikou': '海口', 'Sanya': '三亚', 'Sansha': '三沙', 'Danzhou': '儋州',
+    
+    // 四川省
+    'Chengdu': '成都', 'Zigong': '自贡', 'Panzhihua': '攀枝花', 'Luzhou': '泸州',
+    'Deyang': '德阳', 'Mianyang': '绵阳', 'Guangyuan': '广元', 'Suining': '遂宁',
+    'Neijiang': '内江', 'Leshan': '乐山', 'Nanchong': '南充', 'Meishan': '眉山',
+    'Yibin': '宜宾', 'GuangAn': '广安', 'Dazhou': '达州', 'YaAn': '雅安',
+    'Bazhong': '巴中', 'Ziyang': '资阳', 'Aba': '阿坝藏族羌族自治州',
+    'Garze': '甘孜藏族自治州', 'Liangshan': '凉山彝族自治州',
+    
+    // 贵州省
+    'Guiyang': '贵阳', 'Liupanshui': '六盘水', 'Zunyi': '遵义', 'Anshun': '安顺',
+    'Bijie': '毕节', 'Tongren': '铜仁', 'Qiandongnan': '黔东南苗族侗族自治州',
+    'Qiannan': '黔南布依族苗族自治州', 'Qianxinan': '黔西南布依族苗族自治州',
+    
+    // 云南省
+    'Kunming': '昆明', 'Qujing': '曲靖', 'Yuxi': '玉溪', 'Baoshan': '保山',
+    'Zhaotong': '昭通', 'Lijiang': '丽江', 'PuEr': '普洱', 'Lincang': '临沧',
+    'Chuxiong': '楚雄彝族自治州', 'Honghe': '红河哈尼族彝族自治州',
+    'Wenshan': '文山壮族苗族自治州', 'Xishuangbanna': '西双版纳傣族自治州',
+    'Dali': '大理白族自治州', 'Dehong': '德宏傣族景颇族自治州',
+    'Nujiang': '怒江傈僳族自治州', 'Diqing': '迪庆藏族自治州',
+    
+    // 西藏自治区
+    'Lhasa': '拉萨', 'Shigatse': '日喀则', 'Qamdo': '昌都', 'Nyingchi': '林芝',
+    'Shannan': '山南', 'Nagqu': '那曲', 'Ngari': '阿里地区',
+    
+    // 陕西省
+    'Xian': '西安', 'Tongchuan': '铜川', 'Baoji': '宝鸡', 'Xianyang': '咸阳',
+    'Weinan': '渭南', 'YanAn': '延安', 'Hanzhong': '汉中', 'Yulin': '榆林',
+    'Ankang': '安康', 'Shangluo': '商洛',
+    
+    // 甘肃省
+    'Lanzhou': '兰州', 'Jiayuguan': '嘉峪关', 'Jinchang': '金昌', 'Baiyin': '白银',
+    'Tianshui': '天水', 'Wuwei': '武威', 'Zhangye': '张掖', 'Pingliang': '平凉',
+    'Jiuquan': '酒泉', 'Qingyang': '庆阳', 'Dingxi': '定西', 'Longnan': '陇南',
+    'Linxia': '临夏回族自治州', 'Gannan': '甘南藏族自治州',
+    
+    // 青海省
+    'Xining': '西宁', 'Haidong': '海东', 'Haibei': '海北藏族自治州',
+    'Huangnan': '黄南藏族自治州', 'Hainan': '海南藏族自治州',
+    'Golog': '果洛藏族自治州', 'Yushu': '玉树藏族自治州',
+    'Haixi': '海西蒙古族藏族自治州',
+    
+    // 宁夏回族自治区
+    'Yinchuan': '银川', 'Shizuishan': '石嘴山', 'Wuzhong': '吴忠', 'Guyuan': '固原',
+    'Zhongwei': '中卫',
+    
+    // 新疆维吾尔自治区
+    'Urumqi': '乌鲁木齐', 'Karamay': '克拉玛依', 'Turpan': '吐鲁番', 'Hami': '哈密',
+    'Aksu': '阿克苏地区', 'Kashgar': '喀什地区', 'Hotan': '和田地区',
+    'Tacheng': '塔城地区', 'Altay': '阿勒泰地区',
+    'Changji': '昌吉回族自治州', 'Bortala': '博尔塔拉蒙古自治州',
+    'Bayingolin': '巴音郭楞蒙古自治州', 'Kizilsu': '克孜勒苏柯尔克孜自治州',
+    'Ili': '伊犁哈萨克自治州',
+    
+    // 港澳台
+    'Hong Kong': '香港', 'Macau': '澳门', 'Taiwan': '台湾',
+    
+    // 省直辖县
+    'Jiyuan': '济源', 'Xiantao': '仙桃', 'Tianmen': '天门', 'Qianjiang': '潜江',
+    'Dingzhou': '定州', 'Xinji': '辛集'
+    };
+    
+    function translateToChinese(text) {
+        if (!text) return '';
+        return chineseTranslationMap[text] || chineseTranslationMap[text.charAt(0).toUpperCase() + text.slice(1)] || text;
+    }
+
+    // 每日文本（中文）
+    const dailyTexts = [
+       { cn: "今天过得怎么样？", en: "How was your day?" },
+       { cn: "愿你拥有美好一天", en: "Wish you a wonderful day" },
+       { cn: "保持微笑 继续前行", en: "Keep smiling and moving forward" },
+       { cn: "阳光总在风雨后", en: "Sunshine always comes after the rain" },
+       { cn: "做自己的太阳", en: "Be your own sunshine" },
+       { cn: "心之所向 素履以往", en: "Follow your heart wherever it leads" },
+       { cn: "生活需要一点甜", en: "Life needs a little sweetness" },
+       { cn: "静待花开 安守时光", en: "Wait for flowers to bloom cherish the time" },
+       { cn: "辛苦啦", en: "You worked hard today" },
+       { cn: "未来可期 前程似锦", en: "Future is promising bright ahead" },
+       { cn: "累了就休息", en: "Rest when you're tired" },
+       { cn: "牛马的一天", en: "A workhorse's day" },
+       { cn: "心有山海 静而无边", en: "Heart has mountains and seas quiet and boundless" },
+       { cn: "一切都会好起来", en: "Everything will get better" },
+       { cn: "忠于自己 热爱生活", en: "Be true to yourself love life" },
+       { cn: "善良是一种选择", en: "Kindness is a choice" },
+       { cn: "星光不问赶路人", en: "Starlight doesn't ask the traveler" },
+       { cn: "以梦为马 不负韶华", en: "Dream as your horse live up to youth" },
+       { cn: "活在当下 珍惜眼前", en: "Live in the moment cherish the present" },
+       { cn: "今天也要努力呀", en: "Keep trying today too" },
+       { cn: "早安 世界需要你", en: "Good morning world needs you" },
+       { cn: "心怀希望 万物可爱", en: "With hope everything is lovely" },
+       { cn: "慢慢来 比较快", en: "Slow down you'll get there faster" },
+       { cn: "爱自己 爱世界", en: "Love yourself love the world" },
+       { cn: "今天也要加油哦", en: "Keep going today" },
+       { cn: "小小的进步 也是进步", en: "Small progress is still progress" },
+       { cn: "你的努力 会被看见", en: "Your efforts will be seen" },
+       { cn: "愿你成为自己的光", en: "May you be your own light" },
+       { cn: "感恩遇见 珍惜拥有", en: "Grateful for meeting cherish what you have" },
+       { cn: "明天会更好", en: "Tomorrow will be better" },
+       { cn: "晚安 好梦", en: "Good night sweet dreams" }
+     ];
+
+    // 节日定义（中文）
+    const festivalTexts = {
+      '0101': { cn: '🎉 元旦快乐!', en: 'Happy New Year! Fresh start!' },
+      '0214': { cn: '❤️ 情人节快乐!', en: 'Happy Valentine\'s Day!' },
+      '0308': { cn: '👩‍🦰 妇女节快乐!', en: 'Happy Women\'s Day!' },
+      '0401': { cn: '🤪 愚人节快乐!', en: 'Happy April Fool\'s Day!' },
+      '0501': { cn: '👷‍♂️ 劳动节快乐!', en: 'Happy Labor Day!' },
+      '0601': { cn: '🧒 儿童节快乐!', en: 'Happy Children\'s Day!' },
+      '1001': { cn: '🇨🇳 国庆节快乐!', en: 'Happy National Day!' },
+      '1224': { cn: '🎄 平安夜快乐!', en: 'Merry Christmas Eve!' },
+      '1225': { cn: '🎅 圣诞快乐!', en: 'Merry Christmas!' },
+      '1231': { cn: '🎆 跨年夜快乐!', en: 'Happy New Year\'s Eve!' },
+    };
+
+    // 英文每日文本（en=主标题英文，cn=副标题中文）
+    const dailyTextsEn = [
+       { cn: "今天过得怎么样？", en: "How was your day?" },
+       { cn: "愿你拥有美好一天", en: "Wish you a wonderful day" },
+       { cn: "保持微笑 继续前行", en: "Keep smiling and moving forward" },
+       { cn: "阳光总在风雨后", en: "Sunshine always comes after the rain" },
+       { cn: "做自己的太阳", en: "Be your own sunshine" },
+       { cn: "心之所向 素履以往", en: "Follow your heart wherever it leads" },
+       { cn: "生活需要一点甜", en: "Life needs a little sweetness" },
+       { cn: "静待花开 安守时光", en: "Wait for flowers to bloom, cherish the time" },
+       { cn: "辛苦啦", en: "You worked hard today" },
+       { cn: "未来可期 前程似锦", en: "The future is bright, keep going" },
+       { cn: "累了就休息", en: "Rest when you're tired" },
+       { cn: "牛马的一天", en: "A workhorse's day" },
+       { cn: "心有山海 静而无边", en: "Heart full of mountains and seas" },
+       { cn: "一切都会好起来", en: "Everything will get better" },
+       { cn: "忠于自己 热爱生活", en: "Be true to yourself, love life" },
+       { cn: "善良是一种选择", en: "Kindness is a choice" },
+       { cn: "星光不问赶路人", en: "Starlight never questions the traveler" },
+       { cn: "以梦为马 不负韶华", en: "Chase your dreams, cherish your youth" },
+       { cn: "活在当下 珍惜眼前", en: "Live in the moment, cherish the present" },
+       { cn: "今天也要努力呀", en: "Keep trying today too" },
+       { cn: "早安 世界需要你", en: "Good morning — the world needs you" },
+       { cn: "心怀希望 万物可爱", en: "With hope, everything is lovely" },
+       { cn: "慢慢来 比较快", en: "Slow down, you'll get there faster" },
+       { cn: "爱自己 爱世界", en: "Love yourself, love the world" },
+       { cn: "今天也要加油哦", en: "Keep going today" },
+       { cn: "小小的进步 也是进步", en: "Small progress is still progress" },
+       { cn: "你的努力 会被看见", en: "Your efforts will be seen" },
+       { cn: "愿你成为自己的光", en: "May you be your own light" },
+       { cn: "感恩遇见 珍惜拥有", en: "Grateful for every encounter" },
+       { cn: "明天会更好", en: "Tomorrow will be better" },
+       { cn: "晚安 好梦", en: "Good night, sweet dreams" }
+    ];
+
+    // 英文节日文本（en=主标题英文，cn=副标题中文）
+    const festivalTextsEn = {
+      '0101': { cn: '🎉 元旦快乐!', en: '🎉 Happy New Year! Fresh start!' },
+      '0214': { cn: '❤️ 情人节快乐!', en: '❤️ Happy Valentine\'s Day!' },
+      '0308': { cn: '👩‍🦰 妇女节快乐!', en: '👩‍🦰 Happy Women\'s Day!' },
+      '0401': { cn: '🤪 愚人节快乐!', en: '🤪 Happy April Fool\'s Day!' },
+      '0501': { cn: '👷‍♂️ 劳动节快乐!', en: '👷‍♂️ Happy Labor Day!' },
+      '0601': { cn: '🧒 儿童节快乐!', en: '🧒 Happy Children\'s Day!' },
+      '1001': { cn: '🇨🇳 国庆节快乐!', en: '🇨🇳 Happy National Day!' },
+      '1224': { cn: '🎄 平安夜快乐!', en: '🎄 Merry Christmas Eve!' },
+      '1225': { cn: '🎅 圣诞快乐!', en: '🎅 Merry Christmas!' },
+      '1231': { cn: '🎆 跨年夜快乐!', en: '🎆 Happy New Year\'s Eve!' },
+    };
+
+    // 语言包
+    let currentLang = 'zh'; // 默认中文
+
+    function t(key) {
+      return locales[currentLang][key] || key;
+    }
+
+    // 语言包数据
+    const locales = {
+      zh: {
+        close: "关闭", save: "保存", save_and_close: "保存并关闭", cancel: "取消", save_and_return: "保存并返回", reset_default: "重置默认效果",
+        developing: "待开发中....", feedback_suggestion: "欢迎给我们发送您的建议", visit_website: "访问《SkyTime》网站", emoji_error: "请输入单个 Emoji 或图标。",
+        thatskytime_title: "thatskytime", announcement: "公告", announcement_text: "体验如何? 欢迎给我们反馈！请前往设置中的高级定义给我们发送您的邮箱！如果你喜欢此项目请为我们“捐赠”谢谢！",
+        interact_share: "交互代码共享", interact_share_desc: "查看更多交互代码共享，如果您也想分享，请给我们发送邮箱！",
+        download_app: "下载《SkyTime》应用程序", android_only: "目前仅安卓版本", thatskynews: "thatskynews", thatskynews_desc: "欢迎访问我们的Sky主站点",
+        language_btn: "语言 / Language", language_title: "切换语言", lang_zh: "中文 / Chinese", lang_en: "英文 / English",
+        interact_title: "交互代码共享", golden_tree_title: "金色圣诞树", 
+        golden_tree_desc: "粒子圣诞树可与现实交互，并添加图片",
+        floating_letter_title: "飘字信笺",
+        floating_letter_desc: "信笺发射器，你可以通过双击编辑来DIY修改文本，分享给你的家人朋友爱人",
+        define_local_time: "定义本地时间", definition: "定义",
+        bottom_reminder_title: "底部提醒显示", reminder_off: "不显示内容", reminder_fixed: "显示指定事件", reminder_nearest: "显示最近倒数日",
+        more_timezones: "更多时区", daymark_title: "日程管理", add_event: "添加日程事件", bottom_reminder: "底部提醒显示",
+        new_event_title: "新建日程", select_event: "选择事件",
+        layout: "界面版式", layout_v1: "版式一", layout_v1_desc: "经典布局", layout_v2: "版式二", layout_v2_desc: "简约布局",
+        timezone_select: "时区选择", time_format: "时间格式", format_12: "12制", format_24: "24制",
+        current_timezone_status: "当前时区状态：", weather_effect: "天气效果", snow: "雪景", rain: "雨景", effect_speed: "效果速度",
+        all_timezones: "选择全部时区", current_local_time: "当前本地时间",
+        dev_mode: "自定义开发者模式", custom_main_title: "自定义主标题", custom_subtitle: "自定义副标题", custom_signature: "自定义签名标题",
+        advanced_definition: "高级定义", v1_ui_custom: "V1 设置 UI 自定义", how_was_day: "今天过得怎么样？", how_was_day_en: "How was your day?",
+        weather_snow: "雪飘时", weather_rain: "雨落时",
+        theme_settings: "主题设置",
+        speed_slow: "慢", speed_medium: "中", speed_fast: "快",
+        timezone_search_placeholder: "搜索城市或时区 (双击以置顶)",
+        date_error_tip: "时间格式或日期错误请使用：2025年12月30日、2025-12-30、2025/12/30、2025.12.30",
+        event_name_placeholder: "事件名称",
+        event_date_placeholder: "事件日期",
+        local_time_placeholder: "本地时间",
+        no_events_add: "暂无日程，点击下方添加",
+        no_events: "暂无日程",
+        delete: "删除",
+        tz_china: "中国标准时间 (GMT+8)",
+        tz_pacific: "太平洋标准时间（PST/PDT）"
+      },
+      
+      en: {
+        close: "Close", save: "Save", save_and_close: "Save & Close", cancel: "Cancel", save_and_return: "Save & Return", reset_default: "Reset to Default",
+        developing: "Under development...", feedback_suggestion: "Send us your suggestions", visit_website: "Visit SkyTime website", emoji_error: "Please enter a single Emoji or icon.",
+        thatskytime_title: "thatskytime", announcement: "Announcement", announcement_text: "How is your experience? Please give us feedback! Go to Advanced Definition in Settings to send us your email.",
+        interact_share: "Interactive Code Sharing", interact_share_desc: "View more interactive code sharing. If you want to share, please send us an email.",
+        download_app: "Download SkyTime App", android_only: "Android only currently", thatskynews: "thatskynews", thatskynews_desc: "Welcome to our Sky main site",
+        language_btn: "Language / 语言", language_title: "Switch Language", lang_zh: "Chinese / 中文", lang_en: "English / 英文",
+        interact_title: "Interactive Code Sharing", golden_tree_title: "Golden Christmas Tree", golden_tree_desc: "Interactive particle Christmas tree, you can add images",
+        floating_letter_title: "Floating Letter",
+        floating_letter_desc: "Letter launcher, double-click to edit text, share with family & friends",
+        define_local_time: "Define Local Time", definition: "Definition",
+        bottom_reminder_title: "Bottom Reminder Display", reminder_off: "No content", reminder_fixed: "Show specified event", reminder_nearest: "Show nearest countdown day",
+        more_timezones: "More Timezones", daymark_title: "Schedule Management", add_event: "Add Event", bottom_reminder: "Bottom Reminder",
+        new_event_title: "New Event", select_event: "Select Event",
+        layout: "Layout", layout_v1: "Layout 1", layout_v1_desc: "Classic layout", layout_v2: "Layout 2", layout_v2_desc: "Minimalist layout",
+        timezone_select: "Timezone Selection", time_format: "Time Format", format_12: "12hour", format_24: "24hour",
+        current_timezone_status: "Current timezone status: ", weather_effect: "Weather Effect", snow: "Snow", rain: "Rain", effect_speed: "Effect Speed",
+        all_timezones: "All Timezones", current_local_time: "Current Local Time",
+        dev_mode: "Developer Mode", custom_main_title: "Custom Main Title", custom_subtitle: "Custom Subtitle", custom_signature: "Custom Signature Title",
+        advanced_definition: "Advanced Definition", v1_ui_custom: "V1 UI Customization", how_was_day: "How was your day?", how_was_day_en: "How was your day?",
+        weather_snow: "Snowing", weather_rain: "Raining",
+        feedback_suggestion: "Send us your suggestions",
+        visit_website: "Visit SkyTime website",
+        theme_settings: "Theme Settings",
+        speed_slow: "Slow", speed_medium: "Medium", speed_fast: "Fast",
+        timezone_search_placeholder: "Search city or timezone (double-tap to pin)",
+        date_error_tip: "Invalid format. Use: 2025-12-30, 2025/12/30, or 2025.12.30",
+        event_name_placeholder: "Event name",
+        event_date_placeholder: "Event date",
+        local_time_placeholder: "Local time",
+        no_events_add: "No events. Tap below to add.",
+        no_events: "No events yet.",
+        delete: "Delete",
+        tz_china: "China Standard Time (GMT+8)",
+        tz_pacific: "Pacific Time (PST/PDT)"
+      }
+    };
+
+    // 更新所有带 data-i18n 属性的元素
+    function updateAllTexts() {
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (key && locales[currentLang][key]) {
+          el.textContent = locales[currentLang][key];
+        }
+      });
+      // 更新公告文字
+      const announcementText = document.getElementById('announcement-text');
+      if (announcementText) {
+        if (currentLang === 'en') {
+          announcementText.innerHTML = `How's your experience? We'd love your feedback! Go to <span id="jump-to-advanced" class="text-sky-300 font-semibold underline cursor-pointer hover:text-sky-200 transition-colors">Advanced Definition</span> in Settings to send us your email! If you enjoy this project, please consider <a href="https://www.ifdian.net/order/create?plan_id=a1ed8ab6438f11f18c1052540025c377&product_type=0&remark=&affiliate_code=" target="_blank" class="text-sky-300 font-semibold underline cursor-pointer hover:text-sky-200 transition-colors">donating</a>. Thank you!`;
+        } else {
+          announcementText.innerHTML = `体验如何? 欢迎给我们反馈！请前往设置中的<span id="jump-to-advanced" class="text-sky-300 font-semibold underline cursor-pointer hover:text-sky-200 transition-colors">高级定义</span>给我们发送您的邮箱！如果你喜欢此项目请为我们<a href="https://www.ifdian.net/order/create?plan_id=a1ed8ab6438f11f18c1052540025c377&product_type=0&remark=&affiliate_code=" target="_blank" class="text-sky-300 font-semibold underline cursor-pointer hover:text-sky-200 transition-colors">捐赠</a>谢谢！`;
+        }
+        // 重新绑定jump-to-advanced事件
+        const jumpEl = document.getElementById('jump-to-advanced');
+        if (jumpEl) {
+          jumpEl.addEventListener('click', () => {
+            vibrateShort();
+            toggleThatskytimeModal(false);
+            setTimeout(() => {
+              const devModal = document.getElementById('dev-mode-modal');
+              if (devModal && devModal.classList.contains('hidden')) {
+                toggleDevModeModal(true);
+                setTimeout(() => { toggleAdvancedConfigModal(true); }, 350);
+              } else {
+                toggleAdvancedConfigModal(true);
+              }
+            }, 200);
+          });
+        }
+      }
+      // 更新placeholder
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (key && locales[currentLang][key]) {
+          el.placeholder = locales[currentLang][key];
+        }
+      });
+      // 更新date-error-tip内容
+      const dateErrorTip = document.getElementById('date-error-tip');
+      if (dateErrorTip) dateErrorTip.textContent = t('date_error_tip');
+      // 更新input placeholder（事件名/日期/本地时间）
+      const createName = document.getElementById('daymark-create-name');
+      const createDate = document.getElementById('daymark-create-date');
+      const tzTextInput = document.getElementById('timezone-text-input');
+      if (createName) createName.placeholder = t('event_name_placeholder');
+      if (createDate) createDate.placeholder = t('event_date_placeholder');
+      if (tzTextInput) tzTextInput.placeholder = t('local_time_placeholder');
+      // 更新秒字
+      const secLabelV1 = document.getElementById('sec-label-v1');
+      const secLabelV2 = document.getElementById('sec-label-v2');
+      if (secLabelV1) secLabelV1.textContent = currentLang === 'en' ? 's' : '秒';
+      if (secLabelV2) secLabelV2.textContent = currentLang === 'en' ? 's' : '秒';
+      // 更新速度标签
+      const speedEl = document.getElementById('speed-value-unified');
+      if (speedEl) {
+        const val = parseInt(document.getElementById('weather-speed-unified')?.value || 5);
+        speedEl.textContent = val <= 3 ? t('speed_slow') : val <= 7 ? t('speed_medium') : t('speed_fast');
+      }
+      // 更新天气状态文字
+      updateWeatherStatusText();
+      // 更新时间显示（因为每日/节日文本可能变化）
+      updateTime();
+    }
+
+    function updateWeatherStatusText() {
+      const statusText = isSnowing ? t('weather_snow') : t('weather_rain');
+      document.getElementById('weather-status-v1').textContent = statusText;
+      document.getElementById('weather-status-v2').textContent = statusText;
+    }
+
+    function saveLanguage() {
+      localStorage.setItem('skytime_language', currentLang);
+    }
+
+    function loadLanguage() {
+      const saved = localStorage.getItem('skytime_language');
+      if (saved === 'zh' || saved === 'en') {
+        currentLang = saved;
+      } else {
+        currentLang = 'zh';
+      }
+      updateAllTexts();
+    }
+
+    // 重写 getDisplayText 以支持英文
+    function getDisplayText() {
+      const isUserCustomized = (
+        config.customTitleCN && 
+        config.customTitleCN !== '今天过得怎么样？' &&
+        config.customTitleCN.trim() !== ''
+      );
+      
+      if (isUserCustomized) {
+        if (currentLang === 'en') {
+          // 英文模式：大字=英文，小字=中文
+          return {
+            cn: config.customTitleEN || 'How was your day?',
+            en: config.customTitleCN || '今天过得怎么样？'
+          };
+        } else {
+          return {
+            cn: config.customTitleCN,
+            en: config.customTitleEN || 'How was your day?'
+          };
+        }
+      }
+      
+      const today = new Date();
+      const month = (today.getMonth() + 1).toString().padStart(2, '0');
+      const day = today.getDate().toString().padStart(2, '0');
+      const monthDay = month + day;
+      
+      if (currentLang === 'en') {
+        // 英文模式：大字=英文(en)，小字=中文(cn)，所以返回 { cn: 中文, en: 英文 } 并在渲染时交换
+        if (festivalTextsEn[monthDay]) {
+          // en字段=英文大字，cn字段=中文小字
+          return { cn: festivalTextsEn[monthDay].en, en: festivalTextsEn[monthDay].cn };
+        }
+        const dayOfYear = Math.floor(
+          (today - new Date(today.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24)
+        );
+        const index = dayOfYear % dailyTextsEn.length;
+        // en字段=英文大字，cn字段=中文小字
+        return { cn: dailyTextsEn[index].en, en: dailyTextsEn[index].cn };
+      } else {
+        if (festivalTexts[monthDay]) {
+          return festivalTexts[monthDay];
+        }
+        const dayOfYear = Math.floor(
+          (today - new Date(today.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24)
+        );
+        const index = dayOfYear % dailyTexts.length;
+        return dailyTexts[index];
+      }
+    }
+
+function toggleLanguageModal(show) {
+    if (isLanguageModalLocked) return;
+    
+    const modal = document.getElementById('language-modal');
+    const parentModal = document.getElementById('thatskytime-modal');
+    
+    if (show && modal && !modal.classList.contains('hidden')) return;
+    if (!show && modal && modal.classList.contains('hidden')) return;
+    
+    isLanguageModalLocked = true;
+    
+    if (show) {
+        modal.classList.remove('hidden');
+        parentModal.style.opacity = '0';
+        parentModal.style.transform = 'translate(-50%, -50%) scale(0.8)';
+        parentModal.style.zIndex = '60';
+        activeModalCount++;
+        updateModalOverlay();
+        if (currentLang === 'zh') {
+            document.getElementById('lang-zh').classList.add('active-option');
+            document.getElementById('lang-en').classList.remove('active-option');
+        } else {
+            document.getElementById('lang-en').classList.add('active-option');
+            document.getElementById('lang-zh').classList.remove('active-option');
+        }
+        setTimeout(() => {
+            modal.style.transform = 'translate(-50%, -50%) scale(1)';
+            modal.style.opacity = '1';
+            modal.style.zIndex = '80';
+            setTimeout(() => { isLanguageModalLocked = false; }, 200);
+        }, 10);
+    } else {
+        modal.style.transform = 'translate(-50%, -50%) scale(0.8)';
+        modal.style.opacity = '0';
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            parentModal.style.opacity = '1';
+            parentModal.style.transform = 'translate(-50%, -50%) scale(1)';
+            parentModal.style.zIndex = '70';
+            activeModalCount--;
+            updateModalOverlay();
+            setTimeout(() => { isLanguageModalLocked = false; }, 200);
+        }, 300);
+    }
+}
+
+    function setLanguage(lang) {
+        if (lang === 'zh' || lang === 'en') {
+            currentLang = lang;
+            saveLanguage();
+            updateAllTexts();
+            updateTime();
+            updateWeatherStatusText();
+        }
+    }
+
+    async function fetchLocalGeographicInfo() {
+        const defaultCountry = currentLang === 'en' ? 'Local' : '本地';
+        const defaultCity = currentLang === 'en' ? 'City' : '城市';
+        
+        try {
+            const response = await fetch('https://ipinfo.io/json');
+            if (!response.ok) {
+                console.warn('IP定位服务返回失败，使用默认值。');
+                return;
+            }
+            
+            const data = await response.json();
+            
+            let resolvedCountry = data.country || ''; 
+            let resolvedCity = data.city || ''; 
+            let resolvedRegion = data.region || ''; 
+            
+            // 英文模式直接用英文原文，中文模式翻译
+            if (currentLang === 'en') {
+                if (data.country === 'CN' && resolvedRegion && resolvedCity) {
+                    timezoneInfo['local'].countryEn = resolvedRegion;
+                    timezoneInfo['local'].cityEn = resolvedCity;
+                    timezoneInfo['local'].country = resolvedRegion;
+                    timezoneInfo['local'].city = resolvedCity;
+                } else {
+                    timezoneInfo['local'].countryEn = resolvedCountry || defaultCountry;
+                    timezoneInfo['local'].cityEn = resolvedCity || defaultCity;
+                    timezoneInfo['local'].country = resolvedCountry || defaultCountry;
+                    timezoneInfo['local'].city = resolvedCity || defaultCity;
+                }
+            } else {
+                const translatedCountry = translateToChinese(resolvedCountry);
+                const translatedRegion = translateToChinese(resolvedRegion);
+                const translatedCity = translateToChinese(resolvedCity);
+                if (data.country === 'CN' && resolvedRegion && resolvedCity) {
+                    timezoneInfo['local'].country = translatedRegion; 
+                    timezoneInfo['local'].city = translatedCity;
+                    timezoneInfo['local'].countryEn = resolvedRegion;
+                    timezoneInfo['local'].cityEn = resolvedCity;
+                } else if (translatedCountry && translatedCity) {
+                    timezoneInfo['local'].country = translatedCountry; 
+                    timezoneInfo['local'].city = translatedCity;
+                    timezoneInfo['local'].countryEn = resolvedCountry;
+                    timezoneInfo['local'].cityEn = resolvedCity;
+                } else {
+                    timezoneInfo['local'].country = defaultCountry;
+                    timezoneInfo['local'].city = defaultCity;
+                    timezoneInfo['local'].countryEn = resolvedCountry || 'Local';
+                    timezoneInfo['local'].cityEn = resolvedCity || 'City';
+                }
+            }
+            
+            console.log(`[IP定位成功] 地区: ${timezoneInfo['local'].country} ${timezoneInfo['local'].city}`);
+            
+            if (config.timezone === 'local') {
+                updateTime();
+            }
+
+        } catch (error) {
+            console.error('IP定位请求失败:', error);
+            timezoneInfo['local'].country = defaultCountry;
+            timezoneInfo['local'].city = defaultCity;
+        }
+    }
+
+    function toggleThatskytimeSecondaryModal(show) {
+        const primaryModal = document.getElementById('thatskytime-modal');
+        const secondaryModal = document.getElementById('thatskytime-secondary-modal');
+        
+        if (show) {
+            secondaryModal.classList.remove('hidden');
+            primaryModal.style.opacity = '0';
+            primaryModal.style.transform = 'translate(-50%, -50%) scale(0.8)';
+            primaryModal.style.zIndex = '60';
+            activeModalCount++;
+            updateModalOverlay();
+            setTimeout(() => {
+                secondaryModal.style.transform = 'translate(-50%, -50%) scale(1)';
+                secondaryModal.style.opacity = '1';
+                secondaryModal.style.zIndex = '80';
+            }, 100);
+        } else {
+            secondaryModal.style.transform = 'translate(-50%, -50%) scale(0.8)';
+            secondaryModal.style.opacity = '0';
+            setTimeout(() => {
+                secondaryModal.classList.add('hidden');
+                primaryModal.style.transform = 'translate(-50%, -50%) scale(1)';
+                primaryModal.style.opacity = '1';
+                primaryModal.style.zIndex = '70';
+                activeModalCount--;
+                updateModalOverlay();
+            }, 300);
+        }
+    }
+
+    // 更新冬夏令时状态显示（扩展版）
+    function updateTimezoneStatus(selectedTimezone) {
+        const statusContainer = document.getElementById('timezone-status-unified');
+        const statusTextEl = document.getElementById('status-text-unified');
+        
+        const dstZones = [
+            'America/Los_Angeles', 'America/New_York', 'America/Chicago', 'America/Denver',
+            'America/Toronto', 'America/Vancouver', 'America/Montreal',
+            'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Europe/Rome',
+            'Europe/Madrid', 'Europe/Amsterdam', 'Europe/Brussels', 'Europe/Vienna',
+            'Europe/Stockholm', 'Europe/Oslo', 'Europe/Copenhagen', 'Europe/Helsinki',
+            'Europe/Warsaw', 'Europe/Prague', 'Europe/Budapest', 'Europe/Bucharest',
+            'Europe/Sofia', 'Europe/Belgrade', 'Europe/Zagreb', 'Europe/Lisbon',
+            'Europe/Dublin', 'Europe/Tallinn', 'Europe/Riga', 'Europe/Vilnius',
+            'Europe/Kiev', 'Europe/Chisinau', 'Europe/Ljubljana', 'Europe/Bratislava',
+            'Australia/Sydney', 'Australia/Melbourne', 'Australia/Adelaide',
+            'Pacific/Auckland', 'Asia/Tehran', 'Asia/Beirut', 'Asia/Jerusalem'
+        ];
+        
+        if (dstZones.includes(selectedTimezone)) {
+            const now = new Date();
+            const inDST = isDST(selectedTimezone, now);
+            
+            let stdAbbr = '', dstAbbr = '';
+            switch(selectedTimezone) {
+                case 'America/Los_Angeles': stdAbbr = 'PST'; dstAbbr = 'PDT'; break;
+                case 'America/New_York': stdAbbr = 'EST'; dstAbbr = 'EDT'; break;
+                case 'America/Chicago': stdAbbr = 'CST'; dstAbbr = 'CDT'; break;
+                case 'America/Denver': stdAbbr = 'MST'; dstAbbr = 'MDT'; break;
+                case 'Europe/London': stdAbbr = 'GMT'; dstAbbr = 'BST'; break;
+                case 'Europe/Paris': case 'Europe/Berlin': case 'Europe/Rome':
+                case 'Europe/Madrid': case 'Europe/Amsterdam': case 'Europe/Brussels':
+                case 'Europe/Vienna': case 'Europe/Stockholm': case 'Europe/Oslo':
+                case 'Europe/Copenhagen': case 'Europe/Warsaw': case 'Europe/Prague':
+                case 'Europe/Budapest': case 'Europe/Ljubljana': case 'Europe/Bratislava':
+                    stdAbbr = 'CET'; dstAbbr = 'CEST'; break;
+                case 'Europe/Helsinki': case 'Europe/Tallinn': case 'Europe/Riga':
+                case 'Europe/Vilnius': case 'Europe/Kiev': case 'Europe/Chisinau':
+                case 'Europe/Sofia': case 'Europe/Bucharest':
+                    stdAbbr = 'EET'; dstAbbr = 'EEST'; break;
+                case 'Australia/Sydney': case 'Australia/Melbourne':
+                    stdAbbr = 'AEST'; dstAbbr = 'AEDT'; break;
+                case 'Australia/Adelaide':
+                    stdAbbr = 'ACST'; dstAbbr = 'ACDT'; break;
+                case 'Pacific/Auckland':
+                    stdAbbr = 'NZST'; dstAbbr = 'NZDT'; break;
+                default: stdAbbr = 'STD'; dstAbbr = 'DST';
+            }
+            
+            const dstLabel = currentLang === 'en' ? 'Daylight Saving Time' : '夏令时';
+            const stdLabel = currentLang === 'en' ? 'Standard Time' : '冬令时';
+            const status = inDST ? `${dstLabel} (${dstAbbr})` : `${stdLabel} (${stdAbbr})`;
+            statusTextEl.textContent = status;
+            statusContainer.classList.remove('hidden', 'opacity-0');
+            statusContainer.classList.add('opacity-100');
+        } else {
+            statusContainer.classList.remove('opacity-100');
+            statusContainer.classList.add('opacity-0');
+            setTimeout(() => {
+                statusContainer.classList.add('hidden');
+            }, 300);
+        }
+    }
+
+    let isSnowing = true;
+    let particles = [];
+    let weatherInterval;
+    let countdown = 60;
+    let updateInterval;
+    
+    let clickCount = 0;
+    let clickTimer = null;
+    
+    let timezoneClickCount = 0;
+    let timezoneClickTimer = null;
+
+    const CLASS_ACTIVE = 'config-button-active';
+    const CLASS_INACTIVE = 'config-button-inactive';
+
+    function saveConfig() {
+      localStorage.setItem('timeDisplayConfig', JSON.stringify(config));
+    }
+
+    function loadConfig() {
+      const saved = localStorage.getItem('timeDisplayConfig');
+      if (saved) {
+        Object.assign(config, JSON.parse(saved));
+        isSnowing = config.weatherType === 'snow';
+      }
+    }
+
+    // 恢复更多时区选择的时区信息
+    function restoreTimezoneInfo() {
+      const tz = config.timezone;
+      if (tz !== 'local' && tz !== 'Asia/Shanghai' && tz !== 'America/Los_Angeles') {
+        if (!timezoneInfo[tz]) {
+          const found = chineseTimezones.find(t => t.id === tz);
+          if (found) {
+            const parts = found.name.split(' ');
+            let country, city;
+            if (parts.length === 1) {
+              country = '';
+              city = found.name;
+            } else {
+              country = parts[0];
+              city = parts.slice(1).join(' ');
+            }
+            // 英文名从id提取城市部分
+            const idParts = tz.split('/');
+            const cityEn = idParts[idParts.length - 1].replace(/_/g, ' ');
+            const countryEn = idParts.length > 1 ? idParts[0].replace(/_/g, ' ') : '';
+            timezoneInfo[tz] = { 
+              name: found.name, nameEn: `${city} (${found.offset})`,
+              city: city, cityEn: cityEn,
+              country: country, countryEn: countryEn
+            };
+            timezoneDisplayNames[tz] = `${found.name} (${found.offset})`;
+            timezoneDisplayNamesEn[tz] = `${cityEn} (${found.offset})`;
+          } else {
+            timezoneInfo[tz] = { name: tz, nameEn: tz, city: tz, cityEn: tz, country: '', countryEn: '' };
+            timezoneDisplayNames[tz] = tz;
+            timezoneDisplayNamesEn[tz] = tz;
+          }
+        }
+      }
+    }
+
+    function syncConfigPanel() {
+      const updateButton = (id, isActive) => {
+        const btn = document.getElementById(id);
+        if (btn) {
+          btn.className = `flex-1 text-white py-2 config-button-base btn-spring-effect ${isActive ? CLASS_ACTIVE : CLASS_INACTIVE}`;
+          if (id.includes('layout')) {
+             btn.className = `flex-1 text-white py-3 config-button-base btn-spring-effect ${isActive ? CLASS_ACTIVE : CLASS_INACTIVE}`;
+          }
+        }
+      };
+
+      updateButton('format-12-unified', config.timeFormat === '12');
+      updateButton('format-24-unified', config.timeFormat === '24');
+      
+      updateButton('weather-snow-unified', config.weatherType === 'snow');
+      updateButton('weather-rain-unified', config.weatherType === 'rain');
+      
+      updateButton('layout-option-1', config.layout === 'v1');
+      updateButton('layout-option-2', config.layout === 'v2');
+      
+      document.getElementById('current-timezone-name').textContent = getTimezoneDisplayName(config.timezone);
+      
+      document.querySelectorAll('#timezone-modal .timezone-option').forEach(option => {
+          if (option.getAttribute('data-timezone') === config.timezone) {
+              option.classList.add('active-option');
+          } else {
+              option.classList.remove('active-option');
+          }
+      });
+      
+      const speedSlider = document.getElementById('weather-speed-unified');
+      if (speedSlider) {
+        speedSlider.value = config.weatherSpeed;
+        document.getElementById('speed-value-unified').textContent = 
+          config.weatherSpeed <= 3 ? t('speed_slow') : config.weatherSpeed <= 7 ? t('speed_medium') : t('speed_fast');
+      }
+      
+      updateTimezoneStatus(config.timezone);
+    }
+    
+    function syncDevModePanel() {
+        document.getElementById('dev-input-cn').value = config.customTitleCN;
+        document.getElementById('dev-input-en').value = config.customTitleEN;
+        document.getElementById('dev-input-sky').value = config.customTitleSky;
+    }
+    
+    function syncAdvancedConfigPanel() {
+        document.getElementById('v1-emoji-input').value = config.v1ButtonEmoji;
+        document.getElementById('emoji-error-message').classList.add('hidden'); 
+    }
+
+    function toggleThatskytimeModal(show) {
+        const modal = document.getElementById('thatskytime-modal');
+        
+        if (show) {
+            modal.classList.remove('hidden');
+            activeModalCount++;
+            updateModalOverlay();
+            setTimeout(() => {
+                modal.style.transform = 'translate(-50%, -50%) scale(1)';
+                modal.style.opacity = '1';
+                modal.style.zIndex = '70';
+            }, 10);
+        } else {
+            modal.style.transform = 'translate(-50%, -50%) scale(0.8)';
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                activeModalCount--;
+                updateModalOverlay();
+            }, 300);
+        }
+    }
+    
+    function toggleConfigPanel(show) {
+        if (isConfigAnimating) return;
+        isConfigAnimating = true;
+        
+        const panel = document.getElementById('config-panel-unified');
+        const overlay = document.getElementById('overlay');
+        
+        if (show) {
+            syncConfigPanel(); 
+            panel.classList.remove('hidden');
+            overlay.classList.remove('hidden');
+            
+            panel.classList.remove('config-hidden');
+            panel.classList.add('config-active');
+
+            document.getElementById('weather-container').style.zIndex = '45';
+            setTimeout(() => {
+                overlay.classList.add('active');
+            }, 10);
+        } else {
+            panel.classList.remove('config-active');
+            panel.classList.add('config-hidden');
+            
+            overlay.classList.remove('active');
+            document.getElementById('weather-container').style.zIndex = '0'; 
+            
+            setTimeout(() => {
+                panel.classList.add('hidden');
+                overlay.classList.add('hidden');
+                if (document.getElementById('timezone-modal').style.opacity !== '0') toggleTimezoneModal(false);
+                if (document.getElementById('dev-mode-modal').style.opacity !== '0') toggleDevModeModal(false);
+                if (document.getElementById('advanced-config-modal').style.opacity !== '0') toggleAdvancedConfigModal(false);
+                if (document.getElementById('timezone-text-modal').style.opacity !== '0') toggleTimezoneTextModal(false);
+                if (document.getElementById('thatskytime-modal').style.opacity !== '0') toggleThatskytimeModal(false);
+                if (document.getElementById('thatskytime-secondary-modal').style.opacity !== '0') toggleThatskytimeSecondaryModal(false);
+                if (document.getElementById('more-timezone-modal').style.opacity !== '0') toggleMoreTimezoneModal(false);
+                if (document.getElementById('daymark-modal').style.opacity !== '0') toggleDaymarkModal(false);
+                if (document.getElementById('daymark-create-modal').style.opacity !== '0') toggleDaymarkCreateModal(false);
+                if (document.getElementById('daymark-select-modal').style.opacity !== '0') toggleDaymarkSelectModal(false);
+                if (document.getElementById('bottom-reminder-select-modal').style.opacity !== '0') toggleBottomReminderSelectModal(false);
+            }, 300); 
+        }
+        
+        setTimeout(() => { isConfigAnimating = false; }, 100);
+    }
+    
+function toggleTimezoneModal(show) {
+    if (isTimezoneModalLocked) return;
+    
+    const modal = document.getElementById('timezone-modal');
+
+    if (show && modal && !modal.classList.contains('hidden')) return;
+    if (!show && modal && modal.classList.contains('hidden')) return;
+    
+    isTimezoneModalLocked = true;
+
+    if (show) {
+        if (document.getElementById('config-panel-unified').classList.contains('hidden')) {
+            toggleConfigPanel(true);
+        }
+        modal.classList.remove('hidden');
+        activeModalCount++;
+        updateModalOverlay();
+        setTimeout(() => {
+            modal.style.transform = 'translate(-50%, -50%) scale(1)';
+            modal.style.opacity = '1';
+            modal.style.zIndex = '60';
+            setTimeout(() => { isTimezoneModalLocked = false; }, 200);
+        }, 10);
+    } else {
+        modal.style.transform = 'translate(-50%, -50%) scale(0.8)';
+        modal.style.opacity = '0';
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            activeModalCount--;
+            updateModalOverlay();
+            setTimeout(() => { isTimezoneModalLocked = false; }, 200);
+        }, 300);
+    }
+}
+    
+    // 底部提醒选择弹窗
+    let selectedReminderMode = 'nearest';
+    
+function toggleBottomReminderSelectModal(show) {
+    if (isBottomReminderModalLocked) return;
+    
+    const modal = document.getElementById('bottom-reminder-select-modal');
+    const parentModal = document.getElementById('daymark-modal');
+
+    if (show && modal && !modal.classList.contains('hidden')) return;
+    if (!show && modal && modal.classList.contains('hidden')) return;
+    
+    isBottomReminderModalLocked = true;
+
+    if (show) {
+        selectedReminderMode = daymarkReminderMode;
+        modal.classList.remove('hidden');
+        parentModal.style.opacity = '0';
+        parentModal.style.transform = 'translate(-50%, -50%) scale(0.8)';
+        parentModal.style.zIndex = '60';
+        activeModalCount++;
+        updateModalOverlay();
+        
+        document.querySelectorAll('#bottom-reminder-select-modal .reminder-option').forEach(opt => {
+            opt.classList.remove('active-option');
+        });
+        if (selectedReminderMode === 'off') {
+            document.getElementById('reminder-off-modal').classList.add('active-option');
+        } else if (selectedReminderMode === 'fixed') {
+            document.getElementById('reminder-fixed-modal').classList.add('active-option');
+        } else if (selectedReminderMode === 'nearest') {
+            document.getElementById('reminder-nearest-modal').classList.add('active-option');
+        }
+        
+        setTimeout(() => {
+            modal.style.transform = 'translate(-50%, -50%) scale(1)';
+            modal.style.opacity = '1';
+            modal.style.zIndex = '80';
+            setTimeout(() => { isBottomReminderModalLocked = false; }, 200);
+        }, 10);
+    } else {
+        modal.style.transform = 'translate(-50%, -50%) scale(0.8)';
+        modal.style.opacity = '0';
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            parentModal.style.opacity = '1';
+            parentModal.style.transform = 'translate(-50%, -50%) scale(1)';
+            parentModal.style.zIndex = '70';
+            activeModalCount--;
+            updateModalOverlay();
+            setTimeout(() => { isBottomReminderModalLocked = false; }, 200);
+        }, 300);
+    }
+}
+    
+function toggleMoreTimezoneModal(show) {
+    if (isMoreTimezoneModalLocked) return;
+    
+    const modal = document.getElementById('more-timezone-modal');
+    const parentModal = document.getElementById('timezone-modal');
+
+    if (show && modal && !modal.classList.contains('hidden')) return;
+    if (!show && modal && modal.classList.contains('hidden')) return;
+    
+    isMoreTimezoneModalLocked = true;
+
+    if (show) {
+        modal.classList.remove('hidden');
+        parentModal.style.opacity = '0';
+        parentModal.style.transform = 'translate(-50%, -50%) scale(0.8)';
+        parentModal.style.zIndex = '60';
+        activeModalCount++;
+        updateModalOverlay();
+        renderMoreTimezoneList();
+        setTimeout(() => {
+            modal.style.transform = 'translate(-50%, -50%) scale(1)';
+            modal.style.opacity = '1';
+            modal.style.zIndex = '80';
+            setTimeout(() => { isMoreTimezoneModalLocked = false; }, 200);
+        }, 10);
+    } else {
+        modal.style.transform = 'translate(-50%, -50%) scale(0.8)';
+        modal.style.opacity = '0';
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            parentModal.style.opacity = '1';
+            parentModal.style.transform = 'translate(-50%, -50%) scale(1)';
+            parentModal.style.zIndex = '60';
+            activeModalCount--;
+            updateModalOverlay();
+            setTimeout(() => { isMoreTimezoneModalLocked = false; }, 200);
+        }, 300);
+    }
+}
+    
+    function renderMoreTimezoneList(searchTerm = '') {
+        const container = document.getElementById('more-timezone-list');
+        const searchLower = searchTerm.toLowerCase();
+        
+        let filteredTimezones = chineseTimezones.filter(tz => 
+            tz.name.toLowerCase().includes(searchLower) || 
+            tz.id.toLowerCase().includes(searchLower) ||
+            tz.offset.toLowerCase().includes(searchLower)
+        );
+        
+        filteredTimezones.sort((a, b) => {
+            const aPinned = pinnedTimezones.includes(a.id);
+            const bPinned = pinnedTimezones.includes(b.id);
+            if (aPinned && !bPinned) return -1;
+            if (!aPinned && bPinned) return 1;
+            return 0;
+        });
+        
+        container.innerHTML = '';
+        
+        filteredTimezones.forEach(tz => {
+            const item = document.createElement('div');
+            item.className = 'more-timezone-item';
+            item.setAttribute('data-timezone-id', tz.id);
+            
+            if (config.timezone === tz.id) {
+                item.classList.add('active-option');
+            }
+            
+            const isPinned = pinnedTimezones.includes(tz.id);
+            
+            // 英文模式下，用timezone id的城市部分显示
+            const idParts = tz.id.split('/');
+            const cityEn = idParts[idParts.length - 1].replace(/_/g, ' ');
+            const displayLabel = currentLang === 'en' ? `${cityEn} (${tz.offset})` : `${tz.name} (${tz.offset})`;
+            
+            item.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                    <span style="color: white; font-weight: 500; flex: 1; word-break: break-word;">${displayLabel}</span>
+                    ${isPinned ? '<span class="pinned-indicator" style="flex-shrink: 0;"></span>' : ''}
+                </div>
+            `;
+            
+            let clickCountLocal = 0;
+            let clickTimerLocal = null;
+            
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                clickCountLocal++;
+                
+                if (clickTimerLocal) clearTimeout(clickTimerLocal);
+                
+                clickTimerLocal = setTimeout(() => {
+                    if (clickCountLocal === 1) {
+                        config.timezone = tz.id;
+                        saveConfig();
+                        const parts = tz.name.split(' ');
+                        let country, city;
+                        if (parts.length === 1) {
+                            country = '';
+                            city = tz.name;
+                        } else {
+                            country = parts[0];
+                            city = parts.slice(1).join(' ');
+                        }
+                        const countryEn = idParts.length > 1 ? idParts[0].replace(/_/g, ' ') : '';
+                        timezoneInfo[tz.id] = { 
+                            name: tz.name, nameEn: `${cityEn} (${tz.offset})`,
+                            city: city, cityEn: cityEn,
+                            country: country, countryEn: countryEn
+                        };
+                        timezoneDisplayNames[tz.id] = `${tz.name} (${tz.offset})`;
+                        timezoneDisplayNamesEn[tz.id] = `${cityEn} (${tz.offset})`;
+                        updateTime();
+                        syncConfigPanel();
+                        toggleMoreTimezoneModal(false);
+                        toggleTimezoneModal(false);
+                    } else if (clickCountLocal === 2) {
+                        vibrateShort();
+                        item.style.transform = 'scale(0.95)';
+                        setTimeout(() => {
+                            item.style.transform = 'scale(1)';
+                        }, 150);
+                        const index = pinnedTimezones.indexOf(tz.id);
+                        if (index > -1) {
+                            pinnedTimezones.splice(index, 1);
+                        } else {
+                            pinnedTimezones.push(tz.id);
+                        }
+                        savePinnedTimezones();
+                        renderMoreTimezoneList(document.getElementById('more-timezone-search').value);
+                    }
+                    clickCountLocal = 0;
+                }, 300);
+            });
+            
+            container.appendChild(item);
+        });
+    }
+    
+    function toggleDaymarkModal(show) {
+        const modal = document.getElementById('daymark-modal');
+
+        if (show) {
+            modal.classList.remove('hidden');
+            activeModalCount++;
+            updateModalOverlay();
+            renderDaymarkList();
+            setTimeout(() => {
+                modal.style.transform = 'translate(-50%, -50%) scale(1)';
+                modal.style.opacity = '1';
+                modal.style.zIndex = '70';
+            }, 10);
+        } else {
+            modal.style.transform = 'translate(-50%, -50%) scale(0.8)';
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                activeModalCount--;
+                updateModalOverlay();
+            }, 300);
+        }
+    }
+    
+    function formatDateDisplayText(eventName, daysRemaining) {
+        if (currentLang === 'en') {
+            if (daysRemaining > 0) {
+                return `${daysRemaining} day${daysRemaining > 1 ? 's' : ''} until ${eventName}`;
+            } else if (daysRemaining === 0) {
+                return `${eventName} is today`;
+            } else {
+                return `${eventName} was ${Math.abs(daysRemaining)} day${Math.abs(daysRemaining) > 1 ? 's' : ''} ago`;
+            }
+        } else {
+            if (daysRemaining > 0) {
+                return `距离 ${eventName} 还有 ${daysRemaining} 天`;
+            } else if (daysRemaining === 0) {
+                return `${eventName} 就是今天`;
+            } else {
+                return `${eventName} 已距今${Math.abs(daysRemaining)}天`;
+            }
+        }
+    }
+    
+    function renderDaymarkList() {
+        const container = document.getElementById('daymark-list');
+        
+        const sortedEvents = [...daymarkEvents].sort((a, b) => {
+            if (a.pinned && !b.pinned) return -1;
+            if (!a.pinned && b.pinned) return 1;
+            return new Date(a.date) - new Date(b.date);
+        });
+        
+        container.innerHTML = '';
+        
+        if (sortedEvents.length === 0) {
+            container.innerHTML = `<div class="text-white/50 text-center py-4">${currentLang === 'en' ? 'No events. Tap below to add.' : '暂无日程，点击下方添加'}</div>`;
+            return;
+        }
+        
+        sortedEvents.forEach(event => {
+            const item = document.createElement('div');
+            item.className = 'daymark-item';
+            
+            const daysRemaining = getDaysRemaining(event.date);
+            const daysColor = daysRemaining >= 0 ? '#7dd3fc' : '#f87171';
+            const dateInfoText = formatDateDisplayText(event.name, daysRemaining);
+            
+            item.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="flex: 1;">
+                        <div style="color: white; font-weight: 500;">${event.name}</div>
+                        <div style="color: ${daysColor}; font-size: 12px;">${dateInfoText}</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        ${event.pinned ? '<span class="pinned-indicator"></span>' : ''}
+                        <button class="delete-event-btn" data-event-id="${event.id}" style="background: none; border: none; color: #7dd3fc; cursor: pointer; font-size: 14px;">${currentLang === 'en' ? 'Delete' : '删除'}</button>
+                    </div>
+                </div>
+            `;
+            
+            let clickCountLocal = 0;
+            let clickTimerLocal = null;
+            
+            item.addEventListener('click', (e) => {
+                if (e.target.classList.contains('delete-event-btn')) return;
+                
+                clickCountLocal++;
+                if (clickTimerLocal) clearTimeout(clickTimerLocal);
+                
+                clickTimerLocal = setTimeout(() => {
+                    if (clickCountLocal === 2) {
+                        vibrateShort();
+                        item.style.transform = 'scale(0.95)';
+                        setTimeout(() => {
+                            item.style.transform = 'scale(1)';
+                        }, 150);
+                        event.pinned = !event.pinned;
+                        saveDaymarkData();
+                        renderDaymarkList();
+                        updateBottomReminder();
+                    }
+                    clickCountLocal = 0;
+                }, 300);
+            });
+            
+            const deleteBtn = item.querySelector('.delete-event-btn');
+            deleteBtn.addEventListener('click', () => {
+                vibrateShort();
+                daymarkEvents = daymarkEvents.filter(e => e.id !== event.id);
+                if (daymarkFixedEventId === event.id) {
+                    daymarkFixedEventId = null;
+                    if (daymarkReminderMode === 'fixed') {
+                        daymarkReminderMode = 'nearest';
+                    }
+                }
+                saveDaymarkData();
+                renderDaymarkList();
+                updateBottomReminder();
+                if (document.getElementById('bottom-reminder-select-modal').style.opacity === '1') {
+                    document.querySelectorAll('#bottom-reminder-select-modal .reminder-option').forEach(opt => {
+                        opt.classList.remove('active-option');
+                    });
+                    if (daymarkReminderMode === 'off') {
+                        document.getElementById('reminder-off-modal').classList.add('active-option');
+                    } else if (daymarkReminderMode === 'fixed') {
+                        document.getElementById('reminder-fixed-modal').classList.add('active-option');
+                    } else if (daymarkReminderMode === 'nearest') {
+                        document.getElementById('reminder-nearest-modal').classList.add('active-option');
+                    }
+                }
+            });
+            
+            container.appendChild(item);
+        });
+    }
+    
+    function toggleDaymarkCreateModal(show) {
+        const modal = document.getElementById('daymark-create-modal');
+        const parentModal = document.getElementById('daymark-modal');
+
+        if (show) {
+            modal.classList.remove('hidden');
+            parentModal.style.opacity = '0';
+            parentModal.style.transform = 'translate(-50%, -50%) scale(0.8)';
+            parentModal.style.zIndex = '60';
+            activeModalCount++;
+            updateModalOverlay();
+            
+            document.getElementById('daymark-create-name').value = '';
+            document.getElementById('daymark-create-date').value = '';
+            document.getElementById('date-error-tip').classList.remove('show');
+            
+            setTimeout(() => {
+                modal.style.transform = 'translate(-50%, -50%) scale(1)';
+                modal.style.opacity = '1';
+                modal.style.zIndex = '80';
+            }, 10);
+        } else {
+            modal.style.transform = 'translate(-50%, -50%) scale(0.8)';
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                parentModal.style.opacity = '1';
+                parentModal.style.transform = 'translate(-50%, -50%) scale(1)';
+                parentModal.style.zIndex = '70';
+                activeModalCount--;
+                updateModalOverlay();
+            }, 300);
+        }
+    }
+    
+    function isValidDate(year, month, day) {
+        const date = new Date(year, month - 1, day);
+        return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
+    }
+    
+    function parseDateString(dateStr) {
+        let match = dateStr.match(/^(\d{4})年(\d{1,2})月(\d{1,2})日$/);
+        if (match) {
+            const year = parseInt(match[1], 10);
+            const month = parseInt(match[2], 10);
+            const day = parseInt(match[3], 10);
+            if (isValidDate(year, month, day)) return new Date(year, month - 1, day);
+            return null;
+        }
+        match = dateStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+        if (match) {
+            const year = parseInt(match[1], 10);
+            const month = parseInt(match[2], 10);
+            const day = parseInt(match[3], 10);
+            if (isValidDate(year, month, day)) return new Date(year, month - 1, day);
+            return null;
+        }
+        match = dateStr.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
+        if (match) {
+            const year = parseInt(match[1], 10);
+            const month = parseInt(match[2], 10);
+            const day = parseInt(match[3], 10);
+            if (isValidDate(year, month, day)) return new Date(year, month - 1, day);
+            return null;
+        }
+        match = dateStr.match(/^(\d{4})\.(\d{1,2})\.(\d{1,2})$/);
+        if (match) {
+            const year = parseInt(match[1], 10);
+            const month = parseInt(match[2], 10);
+            const day = parseInt(match[3], 10);
+            if (isValidDate(year, month, day)) return new Date(year, month - 1, day);
+            return null;
+        }
+        match = dateStr.match(/^(\d{4})(\d{1,2})(\d{1,2})$/);
+        if (match) {
+            const year = parseInt(match[1], 10);
+            const month = parseInt(match[2], 10);
+            const day = parseInt(match[3], 10);
+            if (month >= 1 && month <= 12 && day >= 1 && day <= 31 && isValidDate(year, month, day)) {
+                return new Date(year, month - 1, day);
+            }
+            return null;
+        }
+        return null;
+    }
+    
+    let tempSelectedEventId = null;
+    
+    function toggleDaymarkSelectModal(show) {
+        const modal = document.getElementById('daymark-select-modal');
+        const parentModal = document.getElementById('bottom-reminder-select-modal');
+        const grandParentModal = document.getElementById('daymark-modal');
+
+        if (show) {
+            tempSelectedEventId = daymarkFixedEventId;
+            modal.classList.remove('hidden');
+            if (parentModal && parentModal.style.opacity !== '0') {
+                parentModal.style.opacity = '0';
+                parentModal.style.transform = 'translate(-50%, -50%) scale(0.8)';
+                parentModal.style.zIndex = '60';
+            } else if (grandParentModal && grandParentModal.style.opacity !== '0') {
+                grandParentModal.style.opacity = '0';
+                grandParentModal.style.transform = 'translate(-50%, -50%) scale(0.8)';
+                grandParentModal.style.zIndex = '60';
+            }
+            activeModalCount++;
+            updateModalOverlay();
+            renderDaymarkSelectList();
+            setTimeout(() => {
+                modal.style.transform = 'translate(-50%, -50%) scale(1)';
+                modal.style.opacity = '1';
+                modal.style.zIndex = '85';
+            }, 10);
+        } else {
+            modal.style.transform = 'translate(-50%, -50%) scale(0.8)';
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                if (parentModal) {
+                    parentModal.style.opacity = '1';
+                    parentModal.style.transform = 'translate(-50%, -50%) scale(1)';
+                    parentModal.style.zIndex = '70';
+                } else if (grandParentModal) {
+                    grandParentModal.style.opacity = '1';
+                    grandParentModal.style.transform = 'translate(-50%, -50%) scale(1)';
+                    grandParentModal.style.zIndex = '70';
+                }
+                activeModalCount--;
+                updateModalOverlay();
+            }, 300);
+        }
+    }
+    
+    function renderDaymarkSelectList() {
+        const container = document.getElementById('daymark-select-list');
+        container.innerHTML = '';
+        
+        if (daymarkEvents.length === 0) {
+            container.innerHTML = `<div class="text-white/50 text-center py-4">${currentLang === 'en' ? 'No events yet.' : '暂无日程'}</div>`;
+            return;
+        }
+        
+        daymarkEvents.forEach(event => {
+            const item = document.createElement('div');
+            item.className = 'daymark-item';
+            
+            if (tempSelectedEventId === event.id) {
+                item.classList.add('active-option');
+            }
+            
+            const daysRemaining = getDaysRemaining(event.date);
+            const dateInfoText = formatDateDisplayText(event.name, daysRemaining);
+            
+            item.innerHTML = `
+                <div>
+                    <div style="color: white; font-weight: 500;">${event.name}</div>
+                    <div style="color: #7dd3fc; font-size: 12px;">${dateInfoText}</div>
+                </div>
+            `;
+            
+            item.addEventListener('click', () => {
+                vibrateShort();
+                document.querySelectorAll('#daymark-select-list .daymark-item').forEach(opt => {
+                    opt.classList.remove('active-option');
+                });
+                item.classList.add('active-option');
+                tempSelectedEventId = event.id;
+            });
+            
+            container.appendChild(item);
+        });
+    }
+    
+    function updateBottomReminder() {
+        const reminderV1 = document.getElementById('bottom-reminder-v1');
+        const reminderV2 = document.getElementById('bottom-reminder-v2');
+        
+        if (daymarkReminderMode === 'off' || daymarkEvents.length === 0) {
+            reminderV1.textContent = '';
+            reminderV2.textContent = '';
+            return;
+        }
+        
+        let displayText = '';
+        
+        if (daymarkReminderMode === 'nearest') {
+            const futureEvents = daymarkEvents.filter(e => getDaysRemaining(e.date) >= 0)
+                .sort((a, b) => getDaysRemaining(a.date) - getDaysRemaining(b.date));
+            if (futureEvents.length > 0) {
+                const nearest = futureEvents[0];
+                const days = getDaysRemaining(nearest.date);
+                displayText = formatDateDisplayText(nearest.name, days);
+            }
+        } else if (daymarkReminderMode === 'fixed' && daymarkFixedEventId) {
+            const fixedEvent = daymarkEvents.find(e => e.id === daymarkFixedEventId);
+            if (fixedEvent) {
+                const days = getDaysRemaining(fixedEvent.date);
+                displayText = formatDateDisplayText(fixedEvent.name, days);
+            }
+        }
+        
+        reminderV1.textContent = displayText;
+        reminderV2.textContent = displayText;
+    }
+    
+    function toggleDevModeModal(show) {
+        const modal = document.getElementById('dev-mode-modal');
+        
+        if (show) {
+            syncDevModePanel(); 
+            modal.classList.remove('hidden');
+            activeModalCount++;
+            updateModalOverlay();
+            setTimeout(() => {
+                modal.style.transform = 'translate(-50%, -50%) scale(1)';
+                modal.style.opacity = '1';
+                modal.style.zIndex = '60';
+            }, 10);
+        } else {
+            modal.style.transform = 'translate(-50%, -50%) scale(0.8)';
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                activeModalCount--;
+                updateModalOverlay();
+            }, 300);
+        }
+    }
+    
+function toggleAdvancedConfigModal(show) {
+    const modal = document.getElementById('advanced-config-modal');
+    const configPanel = document.getElementById('config-panel-unified');
+    const devModal = document.getElementById('dev-mode-modal');
+
+    if (show) {
+        if (configPanel.classList.contains('hidden')) {
+            toggleConfigPanel(true);
+        }
+        syncAdvancedConfigPanel();
+        modal.classList.remove('hidden');
+        configPanel.style.zIndex = '30';
+        if (devModal) {
+            devModal.style.zIndex = '50';
+            devModal.style.opacity = '0.5';
+        }
+        activeModalCount++;
+        updateModalOverlay();
+        setTimeout(() => {
+            modal.style.transform = 'translate(-50%, -50%) scale(1)';
+            modal.style.opacity = '1';
+            modal.style.zIndex = '70';
+        }, 10);
+    } else {
+        modal.style.transform = 'translate(-50%, -50%) scale(0.8)';
+        modal.style.opacity = '0';
+        configPanel.style.zIndex = '50';
+        if (devModal) {
+            devModal.style.zIndex = '60';
+            devModal.style.opacity = '1';
+        }
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            activeModalCount--;
+            updateModalOverlay();
+            
+            // 恢复开发者模式弹窗的显示状态
+            if (devModal && !devModal.classList.contains('hidden')) {
+                devModal.style.opacity = '1';
+                devModal.style.zIndex = '60';
+                devModal.style.transform = 'translate(-50%, -50%) scale(1)';
+            }
+        }, 300);
+    }
+}
+    
+// 锁
+let isTimezoneTextModalLocked = false;
+
+function toggleTimezoneTextModal(show) {
+    // 上锁则忽略
+    if (isTimezoneTextModalLocked) return;
+    
+    const modal = document.getElementById('timezone-text-modal');
+    
+    if (show && modal && !modal.classList.contains('hidden')) return;
+    if (!show && modal && modal.classList.contains('hidden')) return;
+    
+    // 上锁
+    isTimezoneTextModalLocked = true;
+    
+    if (show) {
+        document.getElementById('timezone-text-input').value = config.customLocalText || '';
+        modal.classList.remove('hidden');
+        activeModalCount++;
+        updateModalOverlay();
+        setTimeout(() => {
+            modal.style.transform = 'translate(-50%, -50%) scale(1)';
+            modal.style.opacity = '1';
+            modal.style.zIndex = '70';
+            // 动画结束后解锁
+            setTimeout(() => { isTimezoneTextModalLocked = false; }, 200);
+        }, 10);
+    } else {
+        modal.style.transform = 'translate(-50%, -50%) scale(0.8)';
+        modal.style.opacity = '0';
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            activeModalCount--;
+            updateModalOverlay();
+            // 动画结束后解锁
+            setTimeout(() => { isTimezoneTextModalLocked = false; }, 200);
+        }, 300);
+    }
+}
+    
+    function saveAdvancedConfig() {
+        const emojiInput = document.getElementById('v1-emoji-input');
+        const errorMessage = document.getElementById('emoji-error-message');
+        const newEmoji = emojiInput.value.trim();
+        
+        if (newEmoji.length > 0 && Array.from(newEmoji).length === 1) {
+            config.v1ButtonEmoji = newEmoji;
+            errorMessage.classList.add('hidden');
+            saveConfig();
+            updateTime(); 
+            toggleAdvancedConfigModal(false); 
+        } else if (newEmoji.length === 0) {
+            config.v1ButtonEmoji = '✨';
+            errorMessage.classList.add('hidden');
+            saveConfig();
+            updateTime();
+            toggleAdvancedConfigModal(false);
+        } else {
+            errorMessage.textContent = currentLang === 'en' 
+                ? `You entered ${Array.from(newEmoji).length} characters. Only 1 is allowed.`
+                : `在定界框输入了 ${Array.from(newEmoji).length} 个单位，只允许1个单位。`;
+            errorMessage.classList.remove('hidden');
+            emojiInput.focus(); 
+        }
+    }
+    
+    function saveTimezoneText() {
+        const input = document.getElementById('timezone-text-input');
+        const newText = input.value.trim();
+        
+        config.customLocalText = newText;
+        saveConfig();
+        updateTime();
+        toggleTimezoneTextModal(false);
+    }
+    
+    function updateTimezoneTextClickability() {
+        const timezoneTextV1 = document.getElementById('timezone-v1');
+        const timezoneTextV2 = document.getElementById('timezone-v2');
+        
+        if (timezoneTextV1) {
+            timezoneTextV1.replaceWith(timezoneTextV1.cloneNode(true));
+        }
+        if (timezoneTextV2) {
+            timezoneTextV2.replaceWith(timezoneTextV2.cloneNode(true));
+        }
+        
+        const newTimezoneTextV1 = document.getElementById('timezone-v1');
+        const newTimezoneTextV2 = document.getElementById('timezone-v2');
+        
+        if (config.timezone === 'local') {
+            if (newTimezoneTextV1) {
+                newTimezoneTextV1.classList.add('clickable-timezone-text');
+                newTimezoneTextV1.addEventListener('click', handleTimezoneTextClick);
+            }
+            if (newTimezoneTextV2) {
+                newTimezoneTextV2.classList.add('clickable-timezone-text');
+                newTimezoneTextV2.addEventListener('click', handleTimezoneTextClick);
+            }
+        } else {
+            if (newTimezoneTextV1) {
+                newTimezoneTextV1.classList.remove('clickable-timezone-text');
+            }
+            if (newTimezoneTextV2) {
+                newTimezoneTextV2.classList.remove('clickable-timezone-text');
+            }
+        }
+    }
+    
+    function handleTimezoneTextClick() {
+        if (config.timezone !== 'local') return;
+        
+            // 不许弹窗重复触发
+    const modal = document.getElementById('timezone-text-modal');
+    if (modal && !modal.classList.contains('hidden')) return;
+        
+        timezoneClickCount++;
+        
+        this.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            this.style.transform = 'scale(1)';
+        }, 150);
+
+        if (timezoneClickTimer) {
+            clearTimeout(timezoneClickTimer);
+        }
+
+        timezoneClickTimer = setTimeout(() => {
+            timezoneClickCount = 0; 
+        }, 400); 
+
+        if (timezoneClickCount === 3) {
+            timezoneClickCount = 0; 
+            clearTimeout(timezoneClickTimer);
+            toggleTimezoneTextModal(true); 
+        }
+    }
+
+    function switchLayout(layoutType) {
+      config.layout = layoutType;
+      
+      document.getElementById('layout-v1').classList.toggle('hidden', layoutType !== 'v1');
+      document.getElementById('layout-v2').classList.toggle('hidden', layoutType !== 'v2');
+      
+      syncConfigPanel(); 
+    }
+
+    function setWeather(type) {
+      isSnowing = type === 'snow';
+      config.weatherType = type;
+      
+      const statusText = isSnowing ? t('weather_snow') : t('weather_rain');
+      document.getElementById('weather-status-v1').textContent = statusText;
+      document.getElementById('weather-status-v2').textContent = statusText;
+      
+      createWeatherParticles(); 
+      syncConfigPanel();
+    }
+
+    function createWeatherParticles() {
+      const container = document.getElementById('weather-container');
+      const particleCount = isSnowing ? 80 : 80;
+      const speedFactor = 6 / config.weatherSpeed;
+      
+      container.innerHTML = '';
+      particles = [];
+      
+      for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        const size = isSnowing ? Math.random() * 4 + 2 : Math.random() * 3 + 1;
+        
+        if (isSnowing) {
+          particle.className = 'weather-particle snowflake';
+          particle.style.width = `${size}px`;
+          particle.style.height = `${size}px`;
+        } else {
+          particle.className = 'weather-particle raindrop';
+          particle.style.width = `${size}px`;
+          particle.style.height = `${size * 1.5}px`;
+        }
+        
+        const startX = Math.random() * 100;
+        const delay = Math.random() * 5;
+        const duration = (Math.random() * 3 + 3) * speedFactor;
+        
+        particle.style.left = `${startX}vw`;
+        particle.style.top = '-20px';
+        particle.style.animation = `${isSnowing ? 'snowFall' : 'rainFall'} ${duration}s linear ${delay}s infinite`;
+        
+        container.appendChild(particle);
+        particles.push({ element: particle });
+      }
+    }
+
+    function toggleWeather() {
+      isSnowing = !isSnowing;
+      config.weatherType = isSnowing ? 'snow' : 'rain';
+      
+      setWeather(config.weatherType); 
+      
+      countdown = 60;
+      updateCountdown();
+    }
+    
+    function updateCountdown() {
+      const countdownEl1 = document.getElementById('countdown-v1');
+      const countdownEl2 = document.getElementById('countdown-v2');
+      if (countdownEl1) countdownEl1.textContent = countdown;
+      if (countdownEl2) countdownEl2.textContent = countdown;
+    }
+
+    function startWeatherTimer() {
+      if (weatherInterval) clearInterval(weatherInterval);
+      
+      weatherInterval = setInterval(() => {
+        countdown--;
+        updateCountdown();
+        
+        if (countdown <= 0) {
+          toggleWeather();
+        }
+      }, 1000);
+    }
+
+    function updateTime() {
+      let displayTime;
+      
+      if (config.timezone === 'local') {
+        displayTime = new Date();
+      } else {
+        const timeStr = new Date().toLocaleString('en-US', { timeZone: config.timezone });
+        displayTime = new Date(timeStr);
+        if (displayTime.toString() === 'Invalid Date') displayTime = new Date();
+      }
+      
+      let hours = displayTime.getHours();
+      const minutes = displayTime.getMinutes();
+      const seconds = displayTime.getSeconds();
+      
+      const period = currentLang === 'en' ? (hours >= 12 ? 'PM' : 'AM') : (hours >= 12 ? '下午' : '上午'); 
+
+      let displayHours = hours;
+      
+      if (config.timeFormat === '12') {
+        displayHours = hours % 12;
+        displayHours = displayHours ? displayHours : 12; 
+      }
+      
+      const hoursStr = String(displayHours).padStart(2, '0');
+      const minutesStr = String(minutes).padStart(2, '0');
+      const secondsStr = String(seconds).padStart(2, '0');
+      
+      const tzInfoRaw = timezoneInfo[config.timezone] || timezoneInfo['local']; 
+      const tzInfo = getTzInfo(config.timezone) || getTzInfo('local');
+      
+      let timezoneDisplayText;
+      if (config.timezone === 'local') {
+        timezoneDisplayText = config.customLocalText || tzInfo.name;
+      } else {
+        timezoneDisplayText = tzInfo.name;
+      }
+      
+      const dayNamesZh = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+      const dayNamesEn = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const dayName = currentLang === 'en' ? dayNamesEn[displayTime.getDay()] : dayNamesZh[displayTime.getDay()];
+      const monthIndex = displayTime.getMonth();
+      const date = displayTime.getDate();
+      const year = displayTime.getFullYear();
+      const monthNamesEn = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      const formattedDate = currentLang === 'en' 
+        ? `${monthNamesEn[monthIndex]} ${date}, ${year}` 
+        : `${year}年${monthIndex + 1}月${date}日`;
+
+      const displayText = getDisplayText();
+      
+      document.getElementById('hours-v1').textContent = hoursStr;
+      document.getElementById('minutes-v1').textContent = minutesStr;
+      document.getElementById('seconds-v1').textContent = secondsStr;
+      document.getElementById('period-v1').textContent = period; 
+      let cityOnlyV1;
+      if (config.timezone === 'local' || config.timezone === 'Asia/Shanghai' || config.timezone === 'America/Los_Angeles') {
+        cityOnlyV1 = timezoneDisplayText;
+      } else {
+        cityOnlyV1 = (tzInfo && tzInfo.city) ? tzInfo.city : timezoneDisplayText;
+      }
+      document.getElementById('timezone-v1').textContent = cityOnlyV1;
+      document.getElementById('city-name-v1').textContent = tzInfo.country + ' ' + tzInfo.city;
+      document.getElementById('day-name-v1').textContent = dayName;
+      document.getElementById('date-v1').textContent = formattedDate;
+      document.getElementById('custom-title-cn-v1').textContent = displayText.cn;
+      document.getElementById('custom-title-en-v1').textContent = displayText.en;
+      document.getElementById('title-v1').textContent = config.customTitleSky; 
+      document.getElementById('v1-button-emoji').textContent = config.v1ButtonEmoji; 
+
+      document.getElementById('hours-v2').textContent = hoursStr;
+      document.getElementById('minutes-v2').textContent = minutesStr;
+      document.getElementById('seconds-v2').textContent = secondsStr;
+      document.getElementById('period-v2').textContent = period;
+      let cityOnlyV2;
+      if (config.timezone === 'local' || config.timezone === 'Asia/Shanghai' || config.timezone === 'America/Los_Angeles') {
+        cityOnlyV2 = timezoneDisplayText;
+      } else {
+        cityOnlyV2 = (tzInfo && tzInfo.city) ? tzInfo.city : timezoneDisplayText;
+      }
+      document.getElementById('timezone-v2').textContent = cityOnlyV2;
+      document.getElementById('country-name-v2').textContent = tzInfo.country;
+      document.getElementById('city-name-v2').textContent = tzInfo.city;
+      document.getElementById('day-name-v2').textContent = dayName;
+      document.getElementById('date-v2').textContent = formattedDate;
+      document.getElementById('custom-title-cn-v2').textContent = displayText.cn;
+      document.getElementById('custom-title-en-v2').textContent = displayText.en;
+      document.getElementById('title-v2').textContent = config.customTitleSky;       
+      updateTimezoneTextClickability();
+      updateTimezoneStatus(config.timezone);
+      
+      updateBottomReminder();
+    }
+
+    function applyConfig() {
+      switchLayout(config.layout);
+      updateTime();
+      setWeather(config.weatherType); 
+      syncConfigPanel();
+    }
+
+    function initialize() {
+      loadConfig();
+      loadPinnedTimezones();
+      loadDaymarkData();
+      restoreTimezoneInfo();
+      loadLanguage();
+      
+      fetchLocalGeographicInfo(); 
+      
+      const thatskytimeLinkV1 = document.getElementById('thatskytime-link-v1');
+      const thatskytimeLinkV2 = document.getElementById('thatskytime-link-v2');
+      let thatskytimeClickCount = 0;
+      let thatskytimeClickTimer = null;
+      
+      function handleThatskytimeClick(event) {
+        vibrateShort();
+        event.stopPropagation();
+        
+        thatskytimeClickCount++;
+        
+        this.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+          this.style.transform = 'scale(1)';
+        }, 150);
+
+        if (thatskytimeClickTimer) {
+          clearTimeout(thatskytimeClickTimer);
+        }
+
+        thatskytimeClickTimer = setTimeout(() => {
+          thatskytimeClickCount = 0;
+        }, 400);
+
+        if (thatskytimeClickCount === 3) {
+          thatskytimeClickCount = 0;
+          clearTimeout(thatskytimeClickTimer);
+          toggleThatskytimeModal(true);
+        }
+      }
+      
+      thatskytimeLinkV1.addEventListener('click', handleThatskytimeClick);
+      thatskytimeLinkV2.addEventListener('click', handleThatskytimeClick);
+      
+      const daymarkLinkV1 = document.getElementById('daymark-link-v1');
+      const daymarkLinkV2 = document.getElementById('daymark-link-v2');
+      let daymarkClickCount = 0;
+      let daymarkClickTimer = null;
+      
+      function handleDaymarkClick(event) {
+        vibrateShort();
+        event.stopPropagation();
+        
+        daymarkClickCount++;
+        
+        this.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+          this.style.transform = 'scale(1)';
+        }, 150);
+
+        if (daymarkClickTimer) {
+          clearTimeout(daymarkClickTimer);
+        }
+
+        daymarkClickTimer = setTimeout(() => {
+          daymarkClickCount = 0;
+        }, 400);
+
+        if (daymarkClickCount === 3) {
+          daymarkClickCount = 0;
+          clearTimeout(daymarkClickTimer);
+          toggleDaymarkModal(true);
+        }
+      }
+      
+      daymarkLinkV1.addEventListener('click', handleDaymarkClick);
+      daymarkLinkV2.addEventListener('click', handleDaymarkClick);
+     
+     // 跳转高级定义
+const jumpToAdvanced = document.getElementById('jump-to-advanced');
+if (jumpToAdvanced) {
+    jumpToAdvanced.addEventListener('click', () => {
+        vibrateShort();
+        toggleThatskytimeModal(false);
+        setTimeout(() => {
+            const devModal = document.getElementById('dev-mode-modal');
+            if (devModal && devModal.classList.contains('hidden')) {
+                toggleDevModeModal(true);
+                // 打开高级定义
+                setTimeout(() => {
+                    toggleAdvancedConfigModal(true);
+                }, 500);
+            } else {
+                toggleAdvancedConfigModal(true);
+            }
+        }, 400);
+    });
+}
+
+      document.getElementById('close-thatskytime-modal-btn').addEventListener('click', () => {
+          vibrateShort();
+          toggleThatskytimeModal(false);
+      });
+      
+      document.getElementById('close-thatskytime-secondary-btn').addEventListener('click', () => {
+          vibrateShort();
+          toggleThatskytimeSecondaryModal(false);
+      });
+      
+      document.getElementById('open-secondary-modal-btn').addEventListener('click', () => {
+          vibrateShort();
+          toggleThatskytimeSecondaryModal(true);
+      });
+      
+      document.getElementById('more-timezone-close').addEventListener('click', () => {
+          vibrateShort();
+          toggleMoreTimezoneModal(false);
+      });
+      
+      document.getElementById('more-timezone-search').addEventListener('input', (e) => {
+          renderMoreTimezoneList(e.target.value);
+      });
+      
+      document.getElementById('daymark-close').addEventListener('click', () => {
+          vibrateShort();
+          toggleDaymarkModal(false);
+      });
+      
+      document.getElementById('daymark-add-btn').addEventListener('click', () => {
+          vibrateShort();
+          toggleDaymarkCreateModal(true);
+      });
+      
+      document.getElementById('daymark-create-save').addEventListener('click', () => {
+          vibrateShort();
+          const nameInput = document.getElementById('daymark-create-name');
+          const dateInput = document.getElementById('daymark-create-date');
+          const name = nameInput.value.trim();
+          const dateStr = dateInput.value.trim();
+          const errorTip = document.getElementById('date-error-tip');
+          
+          if (name && dateStr) {
+              const parsedDate = parseDateString(dateStr);
+              if (!parsedDate || isNaN(parsedDate.getTime())) {
+                  errorTip.classList.add('show');
+                  return;
+              }
+              errorTip.classList.remove('show');
+              
+              const formattedDate = `${parsedDate.getFullYear()}-${String(parsedDate.getMonth() + 1).padStart(2, '0')}-${String(parsedDate.getDate()).padStart(2, '0')}`;
+              
+              daymarkEvents.push({
+                  id: Date.now(),
+                  name: name,
+                  date: formattedDate,
+                  pinned: false
+              });
+              saveDaymarkData();
+              renderDaymarkList();
+              updateBottomReminder();
+              toggleDaymarkCreateModal(false);
+          }
+      });
+      
+      document.getElementById('daymark-create-cancel').addEventListener('click', () => {
+          vibrateShort();
+          toggleDaymarkCreateModal(false);
+      });
+      
+      document.getElementById('save-daymark-select-btn').addEventListener('click', () => {
+          vibrateShort();
+          if (tempSelectedEventId !== null) {
+              daymarkFixedEventId = tempSelectedEventId;
+              daymarkReminderMode = 'fixed';
+              saveDaymarkData();
+              updateBottomReminder();
+              if (document.getElementById('bottom-reminder-select-modal').style.opacity === '1') {
+                  selectedReminderMode = 'fixed';
+                  document.querySelectorAll('#bottom-reminder-select-modal .reminder-option').forEach(opt => {
+                      opt.classList.remove('active-option');
+                  });
+                  document.getElementById('reminder-fixed-modal').classList.add('active-option');
+              }
+          }
+          toggleDaymarkSelectModal(false);
+      });
+      
+      document.getElementById('save-bottom-reminder-btn').addEventListener('click', () => {
+          vibrateShort();
+          daymarkReminderMode = selectedReminderMode;
+          if (daymarkReminderMode === 'fixed' && daymarkFixedEventId === null && daymarkEvents.length > 0) {
+              daymarkFixedEventId = daymarkEvents[0].id;
+          }
+          saveDaymarkData();
+          updateBottomReminder();
+          toggleBottomReminderSelectModal(false);
+      });
+      
+      document.getElementById('reminder-off-modal').addEventListener('click', () => {
+          vibrateShort();
+          selectedReminderMode = 'off';
+          document.querySelectorAll('#bottom-reminder-select-modal .reminder-option').forEach(opt => {
+              opt.classList.remove('active-option');
+          });
+          document.getElementById('reminder-off-modal').classList.add('active-option');
+      });
+      
+      document.getElementById('reminder-fixed-modal').addEventListener('click', () => {
+          vibrateShort();
+          if (daymarkEvents.length === 0) {
+              return;
+          }
+          selectedReminderMode = 'fixed';
+          document.querySelectorAll('#bottom-reminder-select-modal .reminder-option').forEach(opt => {
+              opt.classList.remove('active-option');
+          });
+          document.getElementById('reminder-fixed-modal').classList.add('active-option');
+          toggleDaymarkSelectModal(true);
+      });
+      
+      document.getElementById('reminder-nearest-modal').addEventListener('click', () => {
+          vibrateShort();
+          selectedReminderMode = 'nearest';
+          document.querySelectorAll('#bottom-reminder-select-modal .reminder-option').forEach(opt => {
+              opt.classList.remove('active-option');
+          });
+          document.getElementById('reminder-nearest-modal').classList.add('active-option');
+      });
+      
+      document.getElementById('open-bottom-reminder-btn').addEventListener('click', () => {
+          vibrateShort();
+          toggleBottomReminderSelectModal(true);
+      });
+      
+      document.getElementById('thatskytime-modal').addEventListener('click', (e) => e.stopPropagation());
+      document.getElementById('thatskytime-secondary-modal').addEventListener('click', (e) => e.stopPropagation());
+      document.getElementById('more-timezone-modal').addEventListener('click', (e) => e.stopPropagation());
+      document.getElementById('daymark-modal').addEventListener('click', (e) => e.stopPropagation());
+      document.getElementById('daymark-create-modal').addEventListener('click', (e) => e.stopPropagation());
+      document.getElementById('daymark-select-modal').addEventListener('click', (e) => e.stopPropagation());
+      document.getElementById('bottom-reminder-select-modal').addEventListener('click', (e) => e.stopPropagation());
+      
+      document.getElementById('config-btn-v1').addEventListener('click', () => {
+          vibrateShort();
+          toggleConfigPanel(true);
+      });
+      document.getElementById('config-btn-v2').addEventListener('click', () => {
+          vibrateShort();
+          toggleConfigPanel(true);
+      });
+      
+      document.getElementById('overlay').addEventListener('click', () => {
+          vibrateShort();
+          toggleConfigPanel(false);
+      });
+      
+      document.getElementById('timezone-select-display').addEventListener('click', () => {
+          vibrateShort();
+          toggleTimezoneModal(true);
+      });
+      document.getElementById('close-modal-btn').addEventListener('click', () => {
+          vibrateShort();
+          toggleTimezoneModal(false);
+      });
+      
+      document.getElementById('advanced-config-btn').addEventListener('click', (e) => {
+          e.stopPropagation(); 
+          vibrateShort();
+          toggleAdvancedConfigModal(true); 
+      });
+      
+      document.getElementById('save-advanced-config-btn').addEventListener('click', () => {
+          vibrateLong();
+          saveAdvancedConfig();
+      });
+      
+      document.getElementById('close-advanced-config-btn').addEventListener('click', () => {
+          vibrateShort();
+          toggleAdvancedConfigModal(false); 
+      });
+      
+      document.getElementById('save-timezone-text-btn').addEventListener('click', () => {
+          vibrateLong();
+          saveTimezoneText();
+      });
+      document.getElementById('close-timezone-text-btn').addEventListener('click', () => {
+          vibrateShort();
+          toggleTimezoneTextModal(false);
+      });
+      document.getElementById('timezone-text-modal').addEventListener('click', (e) => e.stopPropagation());
+
+      // 语言弹窗事件绑定
+      document.getElementById('open-language-modal-btn').addEventListener('click', () => {
+          vibrateShort();
+          toggleLanguageModal(true);
+      });
+      document.getElementById('save-language-btn').addEventListener('click', () => {
+          vibrateShort();
+          const selectedLang = document.querySelector('#language-modal .language-option.active-option')?.getAttribute('data-lang');
+          if (selectedLang) {
+            setLanguage(selectedLang);
+          }
+          toggleLanguageModal(false);
+      });
+      document.getElementById('lang-zh').addEventListener('click', () => {
+          vibrateShort();
+          document.getElementById('lang-zh').classList.add('active-option');
+          document.getElementById('lang-en').classList.remove('active-option');
+      });
+      document.getElementById('lang-en').addEventListener('click', () => {
+          vibrateShort();
+          document.getElementById('lang-en').classList.add('active-option');
+          document.getElementById('lang-zh').classList.remove('active-option');
+      });
+
+      document.getElementById('modal-overlay').addEventListener('click', (e) => {
+          if(e.target === document.getElementById('modal-overlay')) {
+            vibrateShort();
+            if (document.getElementById('advanced-config-modal').style.opacity === '1') {
+                toggleAdvancedConfigModal(false); 
+            } else if (document.getElementById('dev-mode-modal').style.opacity === '1') {
+                toggleDevModeModal(false);
+            } else if (document.getElementById('timezone-modal').style.opacity === '1') {
+                toggleTimezoneModal(false);
+            } else if (document.getElementById('timezone-text-modal').style.opacity === '1') {
+                toggleTimezoneTextModal(false);
+            } else if (document.getElementById('thatskytime-modal').style.opacity === '1') {
+                toggleThatskytimeModal(false);
+            } else if (document.getElementById('thatskytime-secondary-modal').style.opacity === '1') {
+                toggleThatskytimeSecondaryModal(false);
+            } else if (document.getElementById('more-timezone-modal').style.opacity === '1') {
+                toggleMoreTimezoneModal(false);
+            } else if (document.getElementById('daymark-modal').style.opacity === '1') {
+                toggleDaymarkModal(false);
+            } else if (document.getElementById('daymark-create-modal').style.opacity === '1') {
+                toggleDaymarkCreateModal(false);
+            } else if (document.getElementById('daymark-select-modal').style.opacity === '1') {
+                toggleDaymarkSelectModal(false);
+            } else if (document.getElementById('bottom-reminder-select-modal').style.opacity === '1') {
+                toggleBottomReminderSelectModal(false);
+            } else if (document.getElementById('language-modal').style.opacity === '1') {
+                toggleLanguageModal(false);
+            }
+          }
+      });
+      
+      document.getElementById('timezone-modal').addEventListener('click', (e) => e.stopPropagation()); 
+      document.getElementById('dev-mode-modal').addEventListener('click', (e) => e.stopPropagation()); 
+      document.getElementById('advanced-config-modal').addEventListener('click', (e) => e.stopPropagation()); 
+      document.getElementById('timezone-text-modal').addEventListener('click', (e) => e.stopPropagation()); 
+      document.getElementById('thatskytime-modal').addEventListener('click', (e) => e.stopPropagation());
+      document.getElementById('thatskytime-secondary-modal').addEventListener('click', (e) => e.stopPropagation());
+      document.getElementById('language-modal').addEventListener('click', (e) => e.stopPropagation());
+
+      document.querySelectorAll('#timezone-modal .timezone-option').forEach(option => {
+          option.addEventListener('click', function() {
+              vibrateShort();
+              const selectedValue = this.getAttribute('data-timezone');
+              
+              if (selectedValue === 'more') {
+                  toggleMoreTimezoneModal(true);
+                  return;
+              }
+              
+              const newTimezone = selectedValue;
+              config.timezone = newTimezone;
+              saveConfig();
+              updateTime();
+              syncConfigPanel();
+              toggleTimezoneModal(false); 
+          });
+      });
+      
+      document.getElementById('format-12-unified').addEventListener('click', () => {
+        vibrateShort();
+        config.timeFormat = '12';
+        updateTime();
+        syncConfigPanel();
+      });
+      
+      document.getElementById('format-24-unified').addEventListener('click', () => {
+        vibrateShort();
+        config.timeFormat = '24';
+        updateTime();
+        syncConfigPanel();
+      });
+      
+      document.getElementById('layout-option-1').addEventListener('click', () => {
+          vibrateShort();
+          switchLayout('v1');
+      });
+      document.getElementById('layout-option-2').addEventListener('click', () => {
+          vibrateShort();
+          switchLayout('v2');
+      });
+      
+      document.getElementById('weather-snow-unified').addEventListener('click', () => {
+          vibrateShort();
+          setWeather('snow');
+      });
+      document.getElementById('weather-rain-unified').addEventListener('click', () => {
+          vibrateShort();
+          setWeather('rain');
+      });
+      
+      document.getElementById('weather-speed-unified').addEventListener('input', (e) => {
+        vibrateShort();
+        config.weatherSpeed = parseInt(e.target.value);
+        createWeatherParticles();
+        syncConfigPanel();
+      });
+      
+      document.getElementById('save-config-unified').addEventListener('click', () => {
+        vibrateLong();
+        saveConfig();
+        toggleConfigPanel(false); 
+      });
+      
+      const themeTitleEl = document.getElementById('theme-settings-title');
+      themeTitleEl.addEventListener('click', () => {
+          vibrateShort();
+          clickCount++;
+          themeTitleEl.style.transform = 'scale(0.95)';
+          setTimeout(() => {
+              themeTitleEl.style.transform = 'scale(1)';
+          }, 150);
+
+          if (clickTimer) {
+              clearTimeout(clickTimer);
+          }
+
+          clickTimer = setTimeout(() => {
+              clickCount = 0; 
+          }, 400); 
+
+          if (clickCount === 3) {
+              clickCount = 0; 
+              clearTimeout(clickTimer);
+              toggleDevModeModal(true); 
+          }
+      });
+      
+      document.getElementById('save-dev-mode-btn').addEventListener('click', () => {
+          vibrateLong();
+          config.customTitleCN = document.getElementById('dev-input-cn').value.trim() || '今天过得怎么样？';
+          config.customTitleEN = document.getElementById('dev-input-en').value.trim() || 'How was your day?';
+          config.customTitleSky = document.getElementById('dev-input-sky').value.trim() || 'Sky';
+          
+          saveConfig();
+          updateTime(); 
+          toggleDevModeModal(false);
+      });
+      
+      document.getElementById('close-dev-mode-btn').addEventListener('click', () => {
+          vibrateLong();
+          config.customTitleCN = '今天过得怎么样？';
+          config.customTitleEN = 'How was your day?';
+          config.customTitleSky = 'Sky';
+          config.v1ButtonEmoji = '✨'; 
+          config.customLocalText = '';
+          
+          saveConfig();
+          updateTime(); 
+          syncDevModePanel(); 
+          toggleDevModeModal(false); 
+      });
+      
+      applyConfig();
+      
+      // ---- 动效提示 ----
+      if (!localStorage.getItem('skytime_glow_hint_shown')) {
+        localStorage.setItem('skytime_glow_hint_shown', '1');
+        // 延迟500ms
+        setTimeout(() => {
+          const glowTargets = [
+            document.getElementById('weather-status-v2'),
+            document.getElementById('weather-status-v1'),
+            document.getElementById('thatskytime-link-v2'),
+            document.getElementById('thatskytime-link-v1'),
+            document.getElementById('daymark-link-v2'),
+            document.getElementById('daymark-link-v1'),
+          ];
+          glowTargets.forEach(el => {
+            if (el) el.classList.add('breathe-glow-spread');
+          });
+          setTimeout(() => {
+            glowTargets.forEach(el => {
+              if (el) el.classList.remove('breathe-glow-spread');
+            });
+          }, 2700);
+        }, 500);
+      }
+      // ---- end 光晕提示 ----
+      
+      if (updateInterval) clearInterval(updateInterval);
+      updateInterval = setInterval(updateTime, 1000);
+      
+      startWeatherTimer();
+    }
+
+    document.addEventListener('DOMContentLoaded', initialize);
+    
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(createWeatherParticles, 200);
+    });
+  </script>
+</body>
+</html>
