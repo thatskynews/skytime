@@ -463,12 +463,12 @@
 <div id="thatskytime-secondary-modal" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden p-6 max-w-xs w-11/12" style="opacity: 0; transform: translate(-50%, -50%) scale(0.8); z-index: 80;">
     <h4 class="text-xl font-bold text-white mb-4 text-center" data-i18n="interact_title">交互代码共享</h4>
     <div class="space-y-3 mb-6">
-<div class="modal-content-item cursor-pointer hover:bg-blue-500/10 transition-colors rounded-lg p-3" onclick="copyAndVisit(event, 'https://thatskytime.neocities.org/code1')">
+<div class="modal-content-item cursor-pointer hover:bg-blue-500/10 transition-colors rounded-lg p-3" onclick="copyAndVisit(event, 'https://skytime.pages.dev/code1')">
     <p class="text-blue-300 mb-1 text-center font-medium" data-i18n="golden_tree_title">金色圣诞树</p>
     <p class="text-blue-200/80 text-sm text-center" data-i18n="golden_tree_desc">粒子圣诞树可与现实交互，并添加图片</p>
 </div>
 
-<div class="modal-content-item cursor-pointer hover:bg-blue-500/10 transition-colors rounded-lg p-3" onclick="copyAndVisit(event, 'https://thatskytime.neocities.org/code2')">
+<div class="modal-content-item cursor-pointer hover:bg-blue-500/10 transition-colors rounded-lg p-3" onclick="copyAndVisit(event, 'https://skytime.pages.dev/code2')">
     <p class="text-blue-300 mb-1 text-center font-medium" data-i18n="floating_letter_title">飘字信笺</p>
     <p class="text-blue-200/80 text-sm text-center" data-i18n="floating_letter_desc">信笺发射器，你可以通过双击编辑来DIY修改文本，分享给你的家人朋友爱人</p>
 </div>
@@ -647,7 +647,7 @@
         
         <div class="flex justify-between items-center mt-4">
           <div class="text-left">
-            <div id="weather-status-v1" class="text-base font-medium text-white">雪飘时</div>
+            <div id="weather-status-v1" class="text-base font-medium text-white">snow</div>
             <div id="weather-timer-v1" class="text-xs opacity-80 text-blue-200"><span id="countdown-v1">60</span><span id="sec-label-v1">秒</span></div>
           </div>
           
@@ -678,9 +678,9 @@
 
           <button id="config-btn-v2" class="flex flex-col items-end text-right transition-transform hover:scale-105 btn-spring-effect flex-shrink-0">
               <div class="flex items-center gap-1">
-                  <div id="weather-status-v2" class="text-base font-bold text-white/90">雪飘时</div>
-                  <div id="weather-timer-v2" class="text-sm font-semibold text-white/70">
-                      <span id="countdown-v2">24</span><span id="sec-label-v2">秒</span>
+                  <div id="weather-status-v2" class="text-base font-bold text-white">snow</div>
+                  <div id="weather-timer-v2" class="text-sm font-semibold text-white">
+                      <span id="countdown-v2">60</span><span id="sec-label-v2">秒</span>
                   </div>
               </div>
           </button>
@@ -844,10 +844,10 @@
     </p>
     <p class="text-sm text-blue-300">
         <span data-i18n="visit_website">访问《SkyTime》网站</span>
-        <a href="https://thatskytime.neocities.org" 
-           onclick="copyAndVisit(event, 'https://thatskytime.neocities.org')"
+        <a href="https://skytime.pages.dev" 
+           onclick="copyAndVisit(event, 'https://skytime.pages.dev')"
            class="text-blue-200 hover:text-blue-100 font-semibold underline transition-colors cursor-pointer">
-            thatskytime.neocities.org
+            https://skytime.pages.dev
         </a>
     </p>
 </div>
@@ -1658,7 +1658,7 @@ const chineseTranslationMap = {
         all_timezones: "选择全部时区", current_local_time: "当前本地时间",
         dev_mode: "自定义开发者模式", custom_main_title: "自定义主标题", custom_subtitle: "自定义副标题", custom_signature: "自定义签名标题",
         advanced_definition: "高级定义", v1_ui_custom: "V1 设置 UI 自定义", how_was_day: "今天过得怎么样？", how_was_day_en: "How was your day?",
-        weather_snow: "雪飘时", weather_rain: "雨落时",
+        weather_snow: "snow", weather_rain: "rain",
         theme_settings: "主题设置",
         speed_slow: "慢", speed_medium: "中", speed_fast: "快",
         timezone_search_placeholder: "搜索城市或时区 (双击以置顶)",
@@ -3696,6 +3696,9 @@ if (jumpToAdvanced) {
             document.getElementById('thatskytime-link-v1'),
             document.getElementById('daymark-link-v2'),
             document.getElementById('daymark-link-v1'),
+            document.getElementById('countdown-v1'),
+            document.getElementById('countdown-v2'),
+            document.getElementById('sec-label-v2'),
           ];
           glowTargets.forEach(el => {
             if (el) el.classList.add('breathe-glow-spread');
