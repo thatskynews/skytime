@@ -967,6 +967,15 @@ function showSuccessAndRedirect(event, link) {
   </div>
 
   <script>
+       (function() {
+        var params = new URLSearchParams(window.location.search);
+        var langParam = params.get('lang');
+    
+        if (langParam === 'en') {
+            localStorage.setItem('skytime_language', 'en');
+        }
+    })();
+
     // 震动功能
     function vibrateShort() {
         if (navigator.vibrate) {
