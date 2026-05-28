@@ -1255,7 +1255,7 @@ function showSuccessAndRedirect(event, link) {
     
     // ==================== 配置状态 ====================
     const config = {
-      timezone: 'America/Los_Angeles', 
+      timezone: 'local', 
       timeFormat: '24',
       weatherSpeed: 5,
       layout: 'v2', 
@@ -1763,10 +1763,10 @@ const chineseTranslationMap = {
           el.placeholder = locales[currentLang][key];
         }
       });
-      // 更新date-error-tip内容
+      // date-error-tip
       const dateErrorTip = document.getElementById('date-error-tip');
       if (dateErrorTip) dateErrorTip.textContent = t('date_error_tip');
-      // 更新input placeholder（事件名/日期/本地时间）
+      // input placeholder
       const createName = document.getElementById('daymark-create-name');
       const createDate = document.getElementById('daymark-create-date');
       const tzTextInput = document.getElementById('timezone-text-input');
@@ -1786,7 +1786,7 @@ const chineseTranslationMap = {
       }
       // 更新天气状态文字
       updateWeatherStatusText();
-      // 更新时间显示（因为每日/节日文本可能变化）
+      // 更新时间显示
       updateTime();
     }
 
@@ -1820,7 +1820,7 @@ const chineseTranslationMap = {
       
       if (isUserCustomized) {
         if (currentLang === 'en') {
-          // 英文模式：大字=英文，小字=中文
+          // 英文模式
           return {
             cn: config.customTitleEN || 'How was your day?',
             en: config.customTitleCN || '今天过得怎么样？'
@@ -1839,16 +1839,16 @@ const chineseTranslationMap = {
       const monthDay = month + day;
       
       if (currentLang === 'en') {
-        // 英文模式：大字=英文(en)，小字=中文(cn)，所以返回 { cn: 中文, en: 英文 } 并在渲染时交换
+        // 渲染时交换
         if (festivalTextsEn[monthDay]) {
-          // en字段=英文大字，cn字段=中文小字
+          // en字段
           return { cn: festivalTextsEn[monthDay].en, en: festivalTextsEn[monthDay].cn };
         }
         const dayOfYear = Math.floor(
           (today - new Date(today.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24)
         );
         const index = dayOfYear % dailyTextsEn.length;
-        // en字段=英文大字，cn字段=中文小字
+        // en字段
         return { cn: dailyTextsEn[index].en, en: dailyTextsEn[index].cn };
       } else {
         if (festivalTexts[monthDay]) {
@@ -1908,6 +1908,29 @@ function toggleLanguageModal(show) {
     }
 }
 
+    // 根据国家代码自动设置语言
+    function autoSetLanguageByCountry(countryCode) {
+        if (!countryCode) return;
+
+        // 如果用户已手动设置过语言，跳过自动切换
+        if (localStorage.getItem('lang_set_by_user')) {
+            console.log('[语言] 用户已手动设置语言则跳过自动切换');
+            return;
+        }
+
+        const chineseRegions = ['CN', 'TW', 'HK', 'MO', 'SG'];
+        const targetLang = chineseRegions.includes(countryCode) ? 'zh' : 'en';
+
+        if (currentLang !== targetLang) {
+            currentLang = targetLang;
+            saveLanguage();
+            updateAllTexts();
+            updateTime();
+            updateWeatherStatusText();
+            console.log(`[语言] 自动切换为 ${targetLang}（国家代码：${countryCode}）`);
+        }
+    }
+
     function setLanguage(lang) {
         if (lang === 'zh' || lang === 'en') {
             currentLang = lang;
@@ -1935,7 +1958,7 @@ function toggleLanguageModal(show) {
             let resolvedCity = data.city || ''; 
             let resolvedRegion = data.region || ''; 
             
-            // 英文模式直接用英文原文，中文模式翻译
+            // 英文模式/英文原文 中文模式翻译
             if (currentLang === 'en') {
                 if (data.country === 'CN' && resolvedRegion && resolvedCity) {
                     timezoneInfo['local'].countryEn = resolvedRegion;
@@ -1976,6 +1999,9 @@ function toggleLanguageModal(show) {
                 updateTime();
             }
 
+            // 定位成功后，根据国家代码自动切换语言
+            autoSetLanguageByCountry(resolvedCountry);
+
         } catch (error) {
             console.error('IP定位请求失败:', error);
             timezoneInfo['local'].country = defaultCountry;
@@ -2013,7 +2039,7 @@ function toggleLanguageModal(show) {
         }
     }
 
-    // 更新冬夏令时状态显示（扩展版）
+    // 更新冬夏令时状态显示
     function updateTimezoneStatus(selectedTimezone) {
         const statusContainer = document.getElementById('timezone-status-unified');
         const statusTextEl = document.getElementById('status-text-unified');
@@ -2097,10 +2123,12 @@ function toggleLanguageModal(show) {
     }
 
     function loadConfig() {
-      const saved = localStorage.getItem('timeDisplayConfig');
-      if (saved) {
-        Object.assign(config, JSON.parse(saved));
+      try {
+        const saved = localStorage.getItem('timeDisplayConfig');
+        if (saved) Object.assign(config, JSON.parse(saved));
         isSnowing = config.weatherType === 'snow';
+      } catch(e) {
+      console.warn('配置读取失败，使用默认值', e);
       }
     }
 
@@ -3526,6 +3554,7 @@ if (jumpToAdvanced) {
           vibrateShort();
           const selectedLang = document.querySelector('#language-modal .language-option.active-option')?.getAttribute('data-lang');
           if (selectedLang) {
+            localStorage.setItem('lang_set_by_user', '1'); // 标记用户已手动设置语言
             setLanguage(selectedLang);
           }
           toggleLanguageModal(false);
@@ -3721,7 +3750,7 @@ if (jumpToAdvanced) {
           }, 2700);
         }, 500);
       }
-      // ---- end 光晕提示 ----
+      // ---- 光晕提示 ----
       
       if (updateInterval) clearInterval(updateInterval);
       updateInterval = setInterval(updateTime, 1000);
