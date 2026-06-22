@@ -141,7 +141,7 @@
     
     .hidden { display: none; }
 
-    /* 光晕提示动效 */
+    /* 一次性光晕提示动效 */
     @keyframes glowSpread {
       0%   { text-shadow: 0 0 0px rgba(255,255,255,0); }
       50%  { text-shadow: 0 0 12px rgba(255,255,255,1), 0 0 25px rgba(255,255,255,0.8); }
@@ -571,6 +571,10 @@
       <!-- 添加日程按钮 -->
       <button id="daymark-add-btn" class="w-full py-3 save-button-blue text-white font-bold rounded-xl transition-all duration-300 btn-spring-effect mb-3" data-i18n="add_event">添加日程事件</button>
       
+      <a id="work-timer-link" href="https://punchlog.pages.dev/" target="_blank" class="w-full block text-center py-3 save-button-blue text-white font-bold rounded-xl transition-all duration-300 btn-spring-effect mb-3 no-underline">
+    PunchLog「Beta」
+</a>
+
       <div class="daymark-settings" style="padding: 12px 0 0; border-top: 1px solid rgba(255,255,255,0.1);">
           <button id="open-bottom-reminder-btn" class="w-full py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors btn-spring-effect" data-i18n="bottom_reminder">底部提醒显示</button>
       </div>
